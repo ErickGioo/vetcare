@@ -1,0 +1,86 @@
+{% extends 'base/base.html' %}
+{% block title %}Productos{% endblock %}
+{% block page_title %}Productos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <a href="{% url 'productos:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Producto</a>
+        <a href="{% url 'productos:categorias' %}" class="btn btn-outline-secondary"><i class="fas fa-tags me-1"></i>Categorías</a>
+    </div>
+    {% if stock_bajo_count > 0 %}
+    <span class="badge bg-danger fs-6"><i class="fas fa-exclamation-triangle me-1"></i>{{ stock_bajo_count }} producto(s) con stock bajo</span>
+    {% endif %}
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por nombre o código..." class="form-control">
+            </div>
+            <div class="col-md-3">
+                <select name="categoria" class="form-select">
+                    <option value="">Todas las categorías</option>
+                    {% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="tipo" class="form-select">
+                    <option value="">Todos los tipos</option>
+                    {% for val, label in tipos %}<option value="{{ val }}" {% if request.GET.tipo == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Código</th><th>Nombre</th><th>Tipo</th><th>Categoría</th>
+                    <th>P. Venta</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in productos %}
+            <tr>
+                <td><code>{{ p.codigo }}</code></td>
+                <td>
+                    <strong>{{ p.nombre }}</strong>
+                    {% if p.requiere_receta %}<span class="badge bg-info ms-1">Receta</span>{% endif %}
+                </td>
+                <td>{{ p.get_tipo_display }}</td>
+                <td>{{ p.categoria|default:'-' }}</td>
+                <td>
+                    Q{{ p.precio_venta }}
+                    {% if p.descuento > 0 %}<br><small class="text-success">-{{ p.descuento }}% desc.</small>{% endif %}
+                </td>
+                <td>
+                    <span class="{% if p.stock_bajo %}stock-low{% endif %}">
+                        {{ p.stock }} {{ p.unidad_medida }}
+                    </span>
+                    {% if p.stock_bajo %}<i class="fas fa-exclamation-triangle text-danger ms-1"></i>{% endif %}
+                </td>
+                <td>
+                    {% if p.activo %}<span class="badge bg-success">Activo</span>
+                    {% else %}<span class="badge bg-secondary">Inactivo</span>{% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'productos:detalle' p.pk %}" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="fas fa-eye"></i></a>
+                    <a href="{% url 'productos:editar' p.pk %}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="{% url 'productos:ajustar_inventario' p.pk %}" class="btn btn-sm btn-outline-success" title="Inventario"><i class="fas fa-boxes"></i></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

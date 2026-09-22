@@ -1,0 +1,17 @@
+.env
+.git
+.gitignore
+__pycache__/
+*.py[cod]
+*.sqlite3
+media/
+staticfiles/
+venv/
+2/
+vetcare/bin/
+vetcare/lib/
+vetcare/include/
+vetcare/pyvenv.cfg
+*.zip
+Dockerfile*
+docker-compose*.yml

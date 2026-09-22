@@ -1,0 +1,154 @@
+{% extends 'base/base.html' %}
+{% block title %}Consulta {{ historial.fecha|date:"d/m/Y" }}{% endblock %}
+{% block page_title %}Consulta — {{ paciente.nombre }} ({{ historial.fecha|date:"d/m/Y" }}){% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a href="{% url 'pacientes:detalle' paciente.pk %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i>Volver a ficha
+    </a>
+  </div>
+  <div class="d-flex gap-2">
+    {% if not historial.consulta_cerrada %}
+    <a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="btn btn-primary">
+      <i class="fas fa-pen me-1"></i>Agregar descripción post-consulta
+    </a>
+    {% endif %}
+    <span class="badge fs-6
+      {% if historial.estado == 'cerrada' %}bg-success
+      {% elif historial.estado == 'seguimiento' %}bg-warning text-dark
+      {% else %}bg-info{% endif %}">
+      {{ historial.get_estado_display }}
+    </span>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  <!-- Columna izquierda -->
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-header fw-bold"><i class="fas fa-heartbeat me-2 text-danger"></i>Signos Vitales</div>
+      <div class="card-body">
+        {% if historial.peso_consulta %}<div class="d-flex justify-content-between mb-1"><span class="text-muted">Peso</span><strong>{{ historial.peso_consulta }} kg</strong></div>{% endif %}
+        {% if historial.temperatura %}<div class="d-flex justify-content-between mb-1"><span class="text-muted">Temperatura</span><strong>{{ historial.temperatura }} °C</strong></div>{% endif %}
+        {% if historial.frecuencia_cardiaca %}<div class="d-flex justify-content-between mb-1"><span class="text-muted">Frec. cardíaca</span><strong>{{ historial.frecuencia_cardiaca }} lpm</strong></div>{% endif %}
+        {% if historial.frecuencia_respiratoria %}<div class="d-flex justify-content-between"><span class="text-muted">Frec. respiratoria</span><strong>{{ historial.frecuencia_respiratoria }} rpm</strong></div>{% endif %}
+        {% if not historial.peso_consulta and not historial.temperatura %}<p class="text-muted small mb-0">No registrados</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header fw-bold"><i class="fas fa-user-md me-2 text-primary"></i>Médico</div>
+      <div class="card-body small">
+        <strong>{{ historial.veterinario.get_full_name|default:historial.veterinario.username }}</strong>
+        <div class="text-muted mt-1">Fecha: {{ historial.fecha|date:"d/m/Y H:i" }}</div>
+        {% if historial.fecha_actualizacion != historial.fecha %}
+        <div class="text-muted">Actualizado: {{ historial.fecha_actualizacion|date:"d/m/Y H:i" }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if historial.proxima_cita %}
+    <div class="card border-warning">
+      <div class="card-header fw-bold text-warning"><i class="fas fa-calendar-alt me-2"></i>Próxima Cita</div>
+      <div class="card-body small">
+        <strong>{{ historial.proxima_cita|date:"d/m/Y" }}</strong>
+        {% if historial.motivo_proxima_cita %}<div class="text-muted mt-1">{{ historial.motivo_proxima_cita }}</div>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Columna derecha -->
+  <div class="col-md-8">
+
+    <!-- Consulta -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold"><i class="fas fa-stethoscope me-2 text-success"></i>Datos de la Consulta</div>
+      <div class="card-body">
+        <p class="mb-1"><span class="text-muted small d-block">MOTIVO</span><strong>{{ historial.motivo }}</strong></p>
+        {% if historial.anamnesis %}
+        <hr class="my-2">
+        <p class="mb-1"><span class="text-muted small d-block">ANAMNESIS</span>{{ historial.anamnesis }}</p>
+        {% endif %}
+        {% if historial.examen_fisico %}
+        <hr class="my-2">
+        <p class="mb-0"><span class="text-muted small d-block">EXAMEN FÍSICO</span>{{ historial.examen_fisico }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Diagnóstico -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold"><i class="fas fa-microscope me-2 text-primary"></i>Diagnóstico</div>
+      <div class="card-body">
+        {% if historial.diagnostico_presuntivo %}
+        <p class="mb-2"><span class="text-muted small d-block">PRESUNTIVO</span>{{ historial.diagnostico_presuntivo }}</p>
+        {% endif %}
+        <p class="mb-0"><span class="text-muted small d-block">DEFINITIVO</span>
+          {% if historial.diagnostico_definitivo %}<strong>{{ historial.diagnostico_definitivo }}</strong>
+          {% else %}<span class="text-muted fst-italic">Pendiente de completar</span>{% endif %}
+        </p>
+        {% if historial.examenes_solicitados %}
+        <hr class="my-2">
+        <p class="mb-1"><span class="text-muted small d-block">EXÁMENES SOLICITADOS</span>{{ historial.examenes_solicitados }}</p>
+        {% endif %}
+        {% if historial.resultados_examenes %}
+        <p class="mb-0"><span class="text-muted small d-block">RESULTADOS</span>{{ historial.resultados_examenes }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Tratamiento -->
+    <div class="card mb-3">
+      <div class="card-header fw-bold"><i class="fas fa-pills me-2 text-warning"></i>Tratamiento</div>
+      <div class="card-body">
+        <p class="mb-2"><span class="text-muted small d-block">PLAN DE TRATAMIENTO</span>{{ historial.tratamiento }}</p>
+        {% if historial.medicamentos %}
+        <p class="mb-2"><span class="text-muted small d-block">MEDICAMENTOS</span>{{ historial.medicamentos }}</p>
+        {% endif %}
+        {% if historial.cirugia_realizada %}
+        <span class="badge bg-danger mb-2">Cirugía realizada</span>
+        {% if historial.detalle_cirugia %}<p class="mb-0"><span class="text-muted small d-block">DETALLE CIRUGÍA</span>{{ historial.detalle_cirugia }}</p>{% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Post-consulta -->
+    {% if historial.descripcion_post_consulta or historial.recomendaciones_propietario %}
+    <div class="card mb-3" style="border-color: #1a6b4a; border-width: 2px;">
+      <div class="card-header fw-bold" style="background:#e8f5ee; color:#0f3d2e;">
+        <i class="fas fa-clipboard-check me-2"></i>Descripción Post-Consulta
+      </div>
+      <div class="card-body">
+        {% if historial.descripcion_post_consulta %}
+        <p class="mb-2"><span class="text-muted small d-block">NOTAS DEL MÉDICO</span>{{ historial.descripcion_post_consulta }}</p>
+        {% endif %}
+        {% if historial.recomendaciones_propietario %}
+        <hr class="my-2">
+        <p class="mb-0"><span class="text-muted small d-block">RECOMENDACIONES AL PROPIETARIO</span>{{ historial.recomendaciones_propietario }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    {% if not historial.consulta_cerrada %}
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      Esta consulta no tiene descripción post-consulta.
+      <a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="alert-link">Agregar ahora</a>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if historial.observaciones %}
+    <div class="card">
+      <div class="card-header fw-bold"><i class="fas fa-lock me-2 text-muted"></i>Observaciones internas</div>
+      <div class="card-body text-muted small">{{ historial.observaciones }}</div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ proveedor }}{% endblock %}
+{% block page_title %}{{ proveedor.empresa|default:proveedor.nombre }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+<div class="col-md-4">
+<div class="card"><div class="card-body">
+<h5 class="fw-bold">{{ proveedor.empresa|default:proveedor.nombre }}</h5>
+<p class="text-muted small">{{ proveedor.contacto }}</p>
+<ul class="list-unstyled small">
+<li><i class="fas fa-phone me-2 text-muted"></i>{{ proveedor.telefono }}</li>
+{% if proveedor.email %}<li><i class="fas fa-envelope me-2 text-muted"></i>{{ proveedor.email }}</li>{% endif %}
+{% if proveedor.direccion %}<li><i class="fas fa-map-marker-alt me-2 text-muted"></i>{{ proveedor.direccion }}</li>{% endif %}
+</ul>
+<a href="{% url 'proveedores:editar' proveedor.pk %}" class="btn btn-outline-primary btn-sm w-100">Editar</a>
+</div></div>
+</div>
+<div class="col-md-8">
+<div class="card"><div class="card-header">Productos de este proveedor</div>
+<table class="table table-hover mb-0">
+<thead><tr><th>Producto</th><th>Tipo</th><th>Stock</th><th>Precio</th></tr></thead>
+<tbody>
+{% for p in productos %}
+<tr>
+<td><a href="{% url 'productos:detalle' p.pk %}">{{ p.nombre }}</a></td>
+<td>{{ p.get_tipo_display }}</td>
+<td>{{ p.stock }}</td>
+<td>Q{{ p.precio_venta }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="text-center text-muted py-3">Sin productos asignados</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div></div>
+</div>
+{% endblock %}

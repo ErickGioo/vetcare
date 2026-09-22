@@ -1,0 +1,24 @@
+{% extends 'base/base.html' %}
+{% block title %}Historial de Transacciones{% endblock %}
+{% block page_title %}Historial de Transacciones{% endblock %}
+{% block content %}
+<div class="card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Tipo</th><th>Descripción</th><th>Cliente</th><th>Monto</th><th>Fecha</th><th>Usuario</th></tr></thead>
+<tbody>
+{% for t in transacciones %}
+<tr>
+<td><span class="badge bg-primary">{{ t.get_tipo_display }}</span></td>
+<td>{{ t.descripcion }}</td>
+<td>{{ t.cliente|default:'-' }}</td>
+<td>{% if t.monto %}Q{{ t.monto }}{% else %}-{% endif %}</td>
+<td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
+<td>{{ t.usuario|default:'-' }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="text-center text-muted py-4">Sin transacciones registradas.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

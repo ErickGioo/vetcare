@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VetCare{% endblock %} | Sistema Veterinario</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a6b4a;
+            --primary-light: #2d9966;
+            --primary-dark: #0f4530;
+            --accent: #f0a500;
+            --accent-light: #ffc83d;
+            --bg: #f4f7f5;
+            --sidebar-bg: #0f3d2e;
+            --sidebar-width: 260px;
+            --text: #1e2d26;
+            --muted: #6c8275;
+            --card-bg: #ffffff;
+            --border: #d8e8df;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+        }
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            background: var(--sidebar-bg);
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform .3s;
+        }
+        .sidebar-brand {
+            padding: 24px 20px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-brand .brand-icon {
+            width: 44px; height: 44px;
+            background: var(--accent);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; margin-bottom: 8px;
+        }
+        .sidebar-brand h4 {
+            color: #fff; font-weight: 800; font-size: 18px; margin: 0;
+        }
+        .sidebar-brand small { color: rgba(255,255,255,.5); font-size: 11px; }
+        .sidebar-nav { padding: 12px 0; flex: 1; }
+        .nav-section {
+            padding: 8px 20px 4px;
+            color: rgba(255,255,255,.35);
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 1.2px; text-transform: uppercase;
+        }
+        .sidebar-nav a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 20px;
+            color: rgba(255,255,255,.7);
+            text-decoration: none;
+            font-size: 14px; font-weight: 600;
+            border-radius: 0;
+            transition: all .2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            color: #fff;
+            background: rgba(255,255,255,.07);
+            border-left-color: var(--accent);
+        }
+        .sidebar-nav a i { width: 18px; text-align: center; font-size: 15px; }
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-footer a {
+            color: rgba(255,255,255,.5);
+            font-size: 13px; text-decoration: none;
+            display: flex; align-items: center; gap: 8px;
+        }
+        /* ── MAIN CONTENT ── */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+        .topbar {
+            background: #fff;
+            padding: 0 28px;
+            height: 64px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 900;
+        }
+        .topbar-title { font-size: 20px; font-weight: 800; color: var(--primary-dark); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .user-badge {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            padding: 6px 14px 6px 8px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 700; color: var(--text);
+        }
+        .user-avatar {
+            width: 30px; height: 30px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 12px; font-weight: 800;
+        }
+        .main-content { padding: 28px; flex: 1; }
+        /* ── CARDS ── */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.05);
+        }
+        .card-header {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            border-radius: 14px 14px 0 0 !important;
+            padding: 16px 20px;
+            font-weight: 700; font-size: 15px;
+        }
+        .stat-card {
+            border-radius: 14px;
+            padding: 20px;
+            color: #fff;
+            position: relative; overflow: hidden;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            right: -20px; top: -20px;
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.12);
+        }
+        .stat-card .stat-icon { font-size: 32px; opacity: .85; }
+        .stat-card .stat-value { font-size: 28px; font-weight: 800; margin: 4px 0 2px; }
+        .stat-card .stat-label { font-size: 12px; opacity: .8; font-weight: 600; }
+        /* ── ALERTS ── */
+        .alert { border-radius: 10px; border: none; font-weight: 600; font-size: 14px; }
+        /* ── TABLES ── */
+        .table th { font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .5px; color: var(--muted); border-bottom-width: 1px; }
+        .table td { font-size: 14px; vertical-align: middle; }
+        /* ── BADGES ── */
+        .badge { font-size: 11px; font-weight: 700; border-radius: 6px; }
+        /* ── BTNS ── */
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-light); border-color: var(--primary-light); }
+        .btn-outline-primary { color: var(--primary); border-color: var(--primary); }
+        .btn-outline-primary:hover { background: var(--primary); border-color: var(--primary); }
+        /* ── STOCK WARNING ── */
+        .stock-low { color: #dc3545; font-weight: 700; }
+        /* ── FORMS ── */
+        .form-label { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+        .form-control, .form-select {
+            border-radius: 8px; border-color: var(--border);
+            font-size: 14px; padding: 8px 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,107,74,.12);
+        }
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-wrapper { margin-left: 0; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">🐾</div>
+        <h4>VetCare</h4>
+        <small>Sistema de Gestión Veterinaria</small>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a href="/" {% if request.path == '/' %}class="active"{% endif %}>
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+        </a>
+        <div class="nav-section">Clínica</div>
+        <a href="/pacientes/" {% if '/pacientes/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-paw"></i> Pacientes
+        </a>
+        <a href="/citas/" {% if '/citas/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-calendar-alt"></i> Citas
+        </a>
+        <div class="nav-section">Personas</div>
+        <a href="/clientes/" {% if '/clientes/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-users"></i> Clientes / Dueños
+        </a>
+        <a href="/empleados/" {% if '/empleados/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-user-md"></i> Empleados / Vets
+        </a>
+        <div class="nav-section">Inventario</div>
+        <a href="/productos/" {% if '/productos/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-pills"></i> Productos
+        </a>
+        <a href="/proveedores/" {% if '/proveedores/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-truck"></i> Proveedores
+        </a>
+        <div class="nav-section">Facturación</div>
+        <a href="/ventas/" {% if request.path == '/ventas/' %}class="active"{% endif %}>
+            <i class="fas fa-receipt"></i> Ventas
+        </a>
+        <a href="/ventas/historial/" {% if '/historial/' in request.path %}class="active"{% endif %}>
+            <i class="fas fa-history"></i> Historial
+        </a>
+        <div class="nav-section">Sistema</div>
+        <a href="/admin/">
+            <i class="fas fa-cog"></i> Administración
+        </a>
+    </nav>
+    <div class="sidebar-footer">
+        <a href="/auth/logout/">
+            <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+        </a>
+    </div>
+</div>
+
+<div class="main-wrapper">
+    <div class="topbar">
+        <div class="topbar-title">{% block page_title %}VetCare{% endblock %}</div>
+        <div class="topbar-right">
+            <div class="user-badge">
+                <div class="user-avatar">{{ user.username.0|upper }}</div>
+                {{ user.get_full_name|default:user.username }}
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show mb-3">
+                {{ msg }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

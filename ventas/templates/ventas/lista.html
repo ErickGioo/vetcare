@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+{% block title %}Ventas{% endblock %}
+{% block page_title %}Ventas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="card px-4 py-2" style="border-left:4px solid #1a6b4a;">
+<small class="text-muted">Total pagado (mes)</small>
+<strong class="d-block fs-5">Q{{ total_mes|floatformat:2 }}</strong>
+</div>
+<a href="{% url 'ventas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Venta</a>
+</div>
+<div class="card">
+<table class="table table-hover mb-0">
+<thead><tr><th>No.</th><th>Cliente</th><th>Paciente</th><th>Fecha</th><th>Total</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>
+{% for v in ventas %}
+<tr>
+<td><strong>#{{ v.numero }}</strong></td>
+<td>{{ v.cliente }}</td>
+<td>{{ v.paciente|default:'-' }}</td>
+<td>{{ v.fecha|date:"d/m/Y H:i" }}</td>
+<td>Q{{ v.total }}</td>
+<td>{{ v.get_tipo_pago_display }}</td>
+<td>
+{% if v.estado == 'pagada' %}<span class="badge bg-success">Pagada</span>
+{% elif v.estado == 'anulada' %}<span class="badge bg-danger">Anulada</span>
+{% else %}<span class="badge bg-warning text-dark">Pendiente</span>{% endif %}
+</td>
+<td>
+<a href="{% url 'ventas:detalle' v.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-eye"></i></a>
+{% if v.estado == 'pendiente' %}<a href="{% url 'ventas:pagar' v.pk %}" class="btn btn-sm btn-success" onclick="return confirm('¿Confirmar pago?')"><i class="fas fa-check"></i></a>{% endif %}
+</td>
+</tr>
+{% empty %}
+<tr><td colspan="8" class="text-center text-muted py-4">No hay ventas registradas.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

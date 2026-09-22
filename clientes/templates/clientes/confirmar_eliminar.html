@@ -1,0 +1,18 @@
+{% extends 'base/base.html' %}
+{% block title %}Eliminar Cliente{% endblock %}
+{% block page_title %}Desactivar Cliente{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-5">
+<div class="card border-danger">
+<div class="card-header text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar desactivación</div>
+<div class="card-body">
+<p>¿Deseas desactivar al cliente <strong>{{ cliente.nombre_completo }}</strong>?</p>
+<form method="post">{% csrf_token %}
+<div class="d-flex gap-2">
+<button type="submit" class="btn btn-danger">Sí, desactivar</button>
+<a href="{% url 'clientes:lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+</div>
+</form>
+</div></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{
+  "family": "vetcare",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "REEMPLAZAR_CON_ARN_ECS_TASK_EXECUTION_ROLE",
+  "taskRoleArn": "REEMPLAZAR_CON_ARN_ECS_TASK_ROLE",
+  "containerDefinitions": [
+    {
+      "name": "vetcare",
+      "image": "REEMPLAZAR_CON_URI_ECR:TAG",
+      "essential": true,
+      "portMappings": [{"containerPort": 8000, "protocol": "tcp"}],
+      "environment": [
+        {"name": "DEBUG", "value": "False"},
+        {"name": "DB_HOST", "value": "REEMPLAZAR_CON_ENDPOINT_RDS"},
+        {"name": "DB_PORT", "value": "5432"},
+        {"name": "DB_NAME", "value": "vetcare_db"},
+        {"name": "DB_USER", "value": "vetcare_user"},
+        {"name": "ALLOWED_HOSTS", "value": "REEMPLAZAR_CON_DNS_ALB"},
+        {"name": "CSRF_TRUSTED_ORIGINS", "value": "https://REEMPLAZAR_CON_DNS_ALB"}
+      ],
+      "secrets": [
+        {"name": "SECRET_KEY", "valueFrom": "REEMPLAZAR_CON_ARN_SECRETS_MANAGER:SECRET_KEY::"},
+        {"name": "DB_PASSWORD", "valueFrom": "REEMPLAZAR_CON_ARN_SECRETS_MANAGER:DB_PASSWORD::"}
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/vetcare",
+          "awslogs-region": "REEMPLAZAR_REGION",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz/')\""],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

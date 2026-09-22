@@ -1,0 +1,106 @@
+{% extends 'base/base.html' %}
+{% block title %}Nueva Consulta{% endblock %}
+{% block page_title %}Nueva Consulta — {{ paciente.nombre }}{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+
+  <!-- Datos clínicos -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold"><i class="fas fa-stethoscope me-2 text-success"></i>Datos de la Consulta</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">Motivo de consulta <span class="text-danger">*</span></label>
+          {{ form.motivo }}{% if form.motivo.errors %}<div class="text-danger small">{{ form.motivo.errors }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Anamnesis</label>
+          {{ form.anamnesis }}
+          <small class="text-muted">Historia clínica relatada por el propietario</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Examen físico</label>
+          {{ form.examen_fisico }}
+        </div>
+        <div class="col-md-3"><label class="form-label">Peso (kg)</label>{{ form.peso_consulta }}</div>
+        <div class="col-md-3"><label class="form-label">Temperatura (°C)</label>{{ form.temperatura }}</div>
+        <div class="col-md-3"><label class="form-label">Frec. cardíaca (lpm)</label>{{ form.frecuencia_cardiaca }}</div>
+        <div class="col-md-3"><label class="form-label">Frec. respiratoria (rpm)</label>{{ form.frecuencia_respiratoria }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagnóstico -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold"><i class="fas fa-microscope me-2 text-primary"></i>Diagnóstico</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Diagnóstico presuntivo</label>
+          {{ form.diagnostico_presuntivo }}
+          <small class="text-muted">Diagnóstico inicial antes de pruebas</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Diagnóstico definitivo</label>
+          {{ form.diagnostico_definitivo }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Exámenes solicitados</label>
+          {{ form.examenes_solicitados }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Resultados de exámenes</label>
+          {{ form.resultados_examenes }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tratamiento -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold"><i class="fas fa-pills me-2 text-warning"></i>Tratamiento</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Plan de tratamiento <span class="text-danger">*</span></label>
+          {{ form.tratamiento }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Medicamentos recetados</label>
+          {{ form.medicamentos }}
+          <small class="text-muted">Nombre, dosis, frecuencia y duración</small>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check mt-2">
+            {{ form.cirugia_realizada }}
+            <label class="form-check-label">¿Se realizó cirugía?</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Detalle de cirugía</label>
+          {{ form.detalle_cirugia }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seguimiento -->
+  <div class="card mb-4">
+    <div class="card-header fw-bold"><i class="fas fa-calendar-check me-2 text-info"></i>Seguimiento</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3"><label class="form-label">Estado</label>{{ form.estado }}</div>
+        <div class="col-md-3"><label class="form-label">Próxima cita</label>{{ form.proxima_cita }}</div>
+        <div class="col-md-6"><label class="form-label">Motivo próxima cita</label>{{ form.motivo_proxima_cita }}</div>
+        <div class="col-md-6"><label class="form-label">Médico tratante</label>{{ form.veterinario }}</div>
+        <div class="col-md-6"><label class="form-label">Observaciones internas</label>{{ form.observaciones }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Guardar Consulta</button>
+    <a href="{% url 'pacientes:detalle' paciente.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

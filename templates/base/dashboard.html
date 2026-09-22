@@ -1,0 +1,91 @@
+{% extends 'base/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #1a6b4a, #2d9966);">
+            <div class="stat-icon"><i class="fas fa-paw"></i></div>
+            <div class="stat-value">{{ total_pacientes|default:'0' }}</div>
+            <div class="stat-label">Pacientes registrados</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f0a500, #ffc83d);">
+            <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="stat-value">{{ citas_hoy|default:'0' }}</div>
+            <div class="stat-label">Citas hoy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #0d6efd, #4d9fff);">
+            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+            <div class="stat-value">Q{{ ventas_hoy|default:'0' }}</div>
+            <div class="stat-label">Ventas hoy</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #dc3545, #ff6b7a);">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="stat-value">{{ stock_bajo|default:'0' }}</div>
+            <div class="stat-label">Productos stock bajo</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-calendar-alt me-2 text-success"></i>Próximas Citas</span>
+                <a href="/citas/nueva/" class="btn btn-sm btn-primary">+ Nueva</a>
+            </div>
+            <div class="card-body p-0">
+                {% if proximas_citas %}
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Paciente</th><th>Fecha/Hora</th><th>Tipo</th><th>Estado</th></tr></thead>
+                    <tbody>
+                    {% for cita in proximas_citas %}
+                    <tr>
+                        <td><strong>{{ cita.paciente.nombre }}</strong><br><small class="text-muted">{{ cita.paciente.propietario }}</small></td>
+                        <td>{{ cita.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td>{{ cita.get_tipo_display }}</td>
+                        <td><span class="badge bg-warning text-dark">{{ cita.get_estado_display }}</span></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-4 text-muted"><i class="fas fa-calendar fa-2x mb-2 d-block"></i>No hay citas próximas</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Stock Bajo</span>
+                <a href="/productos/" class="btn btn-sm btn-outline-primary">Ver todos</a>
+            </div>
+            <div class="card-body p-0">
+                {% if productos_stock_bajo %}
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Producto</th><th>Stock</th><th>Mínimo</th></tr></thead>
+                    <tbody>
+                    {% for p in productos_stock_bajo %}
+                    <tr>
+                        <td><a href="/productos/{{ p.pk }}/">{{ p.nombre }}</a></td>
+                        <td><span class="stock-low">{{ p.stock }}</span></td>
+                        <td class="text-muted">{{ p.stock_minimo }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-center py-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>Todo el inventario en orden</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

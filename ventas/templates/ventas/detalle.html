@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+{% block title %}Venta #{{ venta.numero }}{% endblock %}
+{% block page_title %}Venta #{{ venta.numero }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+<div class="col-md-4">
+<div class="card mb-3"><div class="card-body">
+<h6 class="fw-bold text-muted mb-3">INFORMACIÓN</h6>
+<div class="mb-2"><small class="text-muted d-block">Cliente</small><strong>{{ venta.cliente }}</strong></div>
+{% if venta.paciente %}<div class="mb-2"><small class="text-muted d-block">Paciente</small><strong>{{ venta.paciente.nombre }}</strong></div>{% endif %}
+<div class="mb-2"><small class="text-muted d-block">Fecha</small>{{ venta.fecha|date:"d/m/Y H:i" }}</div>
+<div class="mb-2"><small class="text-muted d-block">Tipo de pago</small>{{ venta.get_tipo_pago_display }}</div>
+<div class="mb-2"><small class="text-muted d-block">Estado</small>
+{% if venta.estado == 'pagada' %}<span class="badge bg-success fs-6">Pagada</span>
+{% else %}<span class="badge bg-warning text-dark fs-6">{{ venta.get_estado_display }}</span>{% endif %}
+</div>
+</div></div>
+<div class="card"><div class="card-body">
+<div class="d-flex justify-content-between mb-1"><span>Subtotal:</span><strong>Q{{ venta.subtotal }}</strong></div>
+{% if venta.descuento_total > 0 %}<div class="d-flex justify-content-between mb-1 text-success"><span>Descuento:</span><strong>-Q{{ venta.descuento_total }}</strong></div>{% endif %}
+<hr>
+<div class="d-flex justify-content-between fs-5"><span class="fw-bold">TOTAL:</span><strong class="text-primary">Q{{ venta.total }}</strong></div>
+{% if venta.estado == 'pendiente' %}
+{% if venta.tipo_pago == 'tarjeta' %}
+<form method="post" action="{% url 'ventas:pagar_neonet' venta.pk %}" class="mt-3">{% csrf_token %}
+<button type="submit" class="btn btn-primary w-100"><i class="fas fa-credit-card me-1"></i>Pagar con tarjeta</button>
+</form>
+<small class="text-muted d-block text-center mt-2">Serás redirigido a NeoNet para ingresar la tarjeta.</small>
+{% else %}
+<form method="post" action="{% url 'ventas:pagar' venta.pk %}" class="mt-3">{% csrf_token %}
+<button type="submit" class="btn btn-success w-100" onclick="return confirm('¿Confirmar pago?')"><i class="fas fa-check me-1"></i>Confirmar Pago</button>
+</form>
+{% endif %}
+{% endif %}
+</div></div>
+</div>
+<div class="col-md-8">
+{% if venta.estado == 'pendiente' %}
+<div class="card mb-3"><div class="card-header">Agregar Producto</div>
+<div class="card-body">
+<form method="post">{% csrf_token %}
+<input type="hidden" name="agregar_item" value="1">
+<div class="row g-2">
+<div class="col-md-7">
+<select name="producto" class="form-select"><option value="">-- Seleccionar producto --</option>
+{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} (Stock: {{ p.stock }}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
+</select>
+</div>
+<div class="col-md-3"><input type="number" name="cantidad" value="1" min="1" class="form-control" placeholder="Cant."></div>
+<div class="col-md-2"><button type="submit" class="btn btn-primary w-100"><i class="fas fa-plus"></i></button></div>
+</div>
+</form>
+</div></div>
+{% endif %}
+<div class="card"><div class="card-header">Productos</div>
+<table class="table table-hover mb-0">
+<thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Desc.</th><th>Total</th></tr></thead>
+<tbody>
+{% for item in items %}
+<tr>
+<td>{{ item.producto.nombre }}</td>
+<td>{{ item.cantidad }}</td>
+<td>Q{{ item.precio_unitario }}</td>
+<td>{% if item.descuento_pct > 0 %}{{ item.descuento_pct }}%{% else %}-{% endif %}</td>
+<td>Q{{ item.total|floatformat:2 }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="5" class="text-center text-muted py-3">Sin productos agregados</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+{% endblock %}

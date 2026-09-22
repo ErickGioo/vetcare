@@ -1,0 +1,43 @@
+{% extends 'base/base.html' %}
+{% block title %}Citas{% endblock %}
+{% block page_title %}Citas{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between mb-3">
+<div class="d-flex gap-2">
+{% for val, label in estados %}
+<a href="?estado={{ val }}" class="btn btn-sm {% if estado_sel == val %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+{% endfor %}
+<a href="?" class="btn btn-sm btn-outline-secondary">Todas</a>
+</div>
+<a href="{% url 'citas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Cita</a>
+</div>
+<div class="card">
+<table class="table table-hover mb-0">
+<thead><tr><th>Paciente</th><th>Dueño</th><th>Veterinario</th><th>Fecha/Hora</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>
+{% for c in citas %}
+<tr>
+<td><strong>{{ c.paciente.nombre }}</strong></td>
+<td>{{ c.paciente.propietario }}</td>
+<td>{{ c.veterinario|default:'-' }}</td>
+<td>{{ c.fecha_hora|date:"d/m/Y H:i" }}</td>
+<td>{{ c.get_tipo_display }}</td>
+<td>
+{% if c.estado == 'completada' %}<span class="badge bg-success">{{ c.get_estado_display }}</span>
+{% elif c.estado == 'cancelada' %}<span class="badge bg-danger">{{ c.get_estado_display }}</span>
+{% elif c.estado == 'en_curso' %}<span class="badge bg-primary">{{ c.get_estado_display }}</span>
+{% else %}<span class="badge bg-warning text-dark">{{ c.get_estado_display }}</span>{% endif %}
+</td>
+<td>
+<a href="{% url 'citas:editar' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+<a href="{% url 'citas:cambiar_estado' c.pk 'completada' %}" class="btn btn-sm btn-outline-success" title="Completar"><i class="fas fa-check"></i></a>
+<a href="{% url 'citas:cambiar_estado' c.pk 'cancelada' %}" class="btn btn-sm btn-outline-danger" title="Cancelar"><i class="fas fa-times"></i></a>
+</td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="text-center text-muted py-4">No hay citas.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

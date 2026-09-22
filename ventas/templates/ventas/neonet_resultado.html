@@ -1,0 +1,16 @@
+{% extends 'base/base.html' %}
+{% block title %}Resultado del pago{% endblock %}
+{% block page_title %}Pago con NeoNet{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-6"><div class="card"><div class="card-body text-center p-5">
+{% if pago.estado == 'aceptado' %}
+<i class="fas fa-check-circle fa-3x text-success mb-3"></i><h4>Pago aprobado</h4>
+<p>La venta #{{ venta.numero }} fue pagada por Q{{ venta.total }}.</p>
+{% else %}
+<i class="fas fa-times-circle fa-3x text-danger mb-3"></i><h4>Pago no aprobado</h4>
+<p>{{ pago.mensaje|default:"NeoNet rechazó o no pudo procesar el pago." }}</p>
+{% endif %}
+{% if pago.transaction_id %}<p class="small text-muted">Referencia NeoNet: {{ pago.transaction_id }}</p>{% endif %}
+<a class="btn btn-primary" href="{% url 'ventas:detalle' venta.pk %}">Volver a la venta</a>
+</div></div></div></div>
+{% endblock %}

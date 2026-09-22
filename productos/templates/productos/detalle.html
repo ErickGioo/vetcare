@@ -1,0 +1,101 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ producto.nombre }}{% endblock %}
+{% block page_title %}{{ producto.nombre }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+<div class="col-md-4">
+    <div class="card">
+        <div class="card-body text-center">
+            {% if producto.imagen %}
+            <img src="{{ producto.imagen.url }}" class="img-fluid rounded mb-3" style="max-height:200px">
+            {% else %}
+            <div style="height:120px;background:#f4f7f5;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:12px;">💊</div>
+            {% endif %}
+            <h5 class="fw-bold">{{ producto.nombre }}</h5>
+            <code>{{ producto.codigo }}</code>
+            <div class="mt-3">
+                {% if producto.activo %}<span class="badge bg-success">Activo</span>
+                {% else %}<span class="badge bg-secondary">Inactivo</span>{% endif %}
+                {% if producto.requiere_receta %}<span class="badge bg-info ms-1">Requiere Receta</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-header">Precios</div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Precio compra:</span><strong>Q{{ producto.precio_compra }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Precio venta:</span><strong>Q{{ producto.precio_venta }}</strong>
+            </div>
+            {% if producto.descuento > 0 %}
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Descuento:</span><strong class="text-success">{{ producto.descuento }}%</strong>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Precio final:</span><strong class="text-primary">Q{{ producto.precio_final|floatformat:2 }}</strong>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-header d-flex justify-content-between">
+            Stock
+            <a href="{% url 'productos:ajustar_inventario' producto.pk %}" class="btn btn-sm btn-primary">Ajustar</a>
+        </div>
+        <div class="card-body text-center">
+            <div style="font-size:36px;font-weight:800;color:{% if producto.stock_bajo %}#dc3545{% else %}#1a6b4a{% endif %}">
+                {{ producto.stock }}
+            </div>
+            <div class="text-muted">{{ producto.unidad_medida }}</div>
+            <small class="text-muted">Mínimo: {{ producto.stock_minimo }}</small>
+        </div>
+    </div>
+</div>
+<div class="col-md-8">
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            Información
+            <a href="{% url 'productos:editar' producto.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit me-1"></i>Editar</a>
+        </div>
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">TIPO</span>{{ producto.get_tipo_display }}</div>
+                <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">CATEGORÍA</span>{{ producto.categoria|default:'-' }}</div>
+                <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">PROVEEDOR</span>{{ producto.proveedor|default:'-' }}</div>
+                <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">UNIDAD</span>{{ producto.unidad_medida }}</div>
+                {% if producto.descripcion %}
+                <div class="col-12"><span class="text-muted d-block" style="font-size:12px;">DESCRIPCIÓN</span>{{ producto.descripcion }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">Últimos Movimientos de Inventario</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Motivo</th><th>Ref.</th></tr></thead>
+                <tbody>
+                {% for m in movimientos %}
+                <tr>
+                    <td>{{ m.fecha|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if m.tipo == 'entrada' %}<span class="badge bg-success">Entrada</span>
+                        {% elif m.tipo == 'salida' %}<span class="badge bg-danger">Salida</span>
+                        {% else %}<span class="badge bg-warning text-dark">Ajuste</span>{% endif %}
+                    </td>
+                    <td>{{ m.cantidad }}</td>
+                    <td>{{ m.motivo }}</td>
+                    <td>{{ m.referencia|default:'-' }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Sin movimientos registrados</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

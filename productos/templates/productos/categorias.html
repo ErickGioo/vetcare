@@ -1,0 +1,23 @@
+{% extends 'base/base.html' %}
+{% block title %}Categorías{% endblock %}
+{% block page_title %}Categorías de Productos{% endblock %}
+{% block content %}
+<div class="mb-3"><a href="{% url 'productos:crear_categoria' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Categoría</a></div>
+<div class="card">
+    <table class="table table-hover mb-0">
+        <thead><tr><th>Nombre</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        {% for c in categorias %}
+        <tr>
+            <td><strong>{{ c.nombre }}</strong></td>
+            <td class="text-muted">{{ c.descripcion|default:'-' }}</td>
+            <td>{% if c.activa %}<span class="badge bg-success">Activa</span>{% else %}<span class="badge bg-secondary">Inactiva</span>{% endif %}</td>
+            <td><a href="{% url 'productos:editar_categoria' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-3">No hay categorías.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

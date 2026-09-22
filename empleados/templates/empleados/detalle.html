@@ -1,0 +1,36 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ empleado }}{% endblock %}
+{% block page_title %}{{ empleado.nombre_completo }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+<div class="col-md-3">
+<div class="card text-center"><div class="card-body">
+{% if empleado.foto %}<img src="{{ empleado.foto.url }}" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;">
+{% else %}<div style="width:80px;height:80px;background:#1a6b4a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:800;margin:0 auto 8px;">{{ empleado.nombre.0 }}</div>{% endif %}
+<h5 class="fw-bold">{{ empleado.nombre_completo }}</h5>
+<span class="badge bg-primary">{{ empleado.get_rol_display }}</span>
+{% if empleado.numero_colegiado %}<div class="text-muted small mt-2">No. Colegiado: {{ empleado.numero_colegiado }}</div>{% endif %}
+<div class="mt-3"><a href="{% url 'empleados:editar' empleado.pk %}" class="btn btn-outline-primary btn-sm w-100">Editar</a></div>
+</div></div>
+</div>
+<div class="col-md-9">
+<div class="card"><div class="card-header">Últimas Citas Atendidas</div>
+<table class="table table-hover mb-0">
+<thead><tr><th>Paciente</th><th>Fecha</th><th>Tipo</th><th>Estado</th></tr></thead>
+<tbody>
+{% for c in citas %}
+<tr>
+<td>{{ c.paciente.nombre }}</td>
+<td>{{ c.fecha_hora|date:"d/m/Y H:i" }}</td>
+<td>{{ c.get_tipo_display }}</td>
+<td><span class="badge bg-success">{{ c.get_estado_display }}</span></td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="text-center text-muted py-3">Sin citas registradas</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.py[cod]
+*.sqlite3
+venv/
+2/
+vetcare/bin/
+vetcare/lib/
+vetcare/include/
+vetcare/pyvenv.cfg
+media/
+staticfiles/
+*.zip
+.DS_Store

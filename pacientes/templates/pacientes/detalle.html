@@ -1,0 +1,107 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ paciente.nombre }}{% endblock %}
+{% block page_title %}Ficha: {{ paciente.nombre }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+
+  <!-- Info del paciente -->
+  <div class="col-md-3">
+    <div class="card text-center mb-3">
+      <div class="card-body">
+        {% if paciente.foto %}
+        <img src="{{ paciente.foto.url }}" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;">
+        {% else %}
+        <div style="width:80px;height:80px;background:#e8f5ee;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 8px;">🐾</div>
+        {% endif %}
+        <h5 class="fw-bold mb-0">{{ paciente.nombre }}</h5>
+        <small class="text-muted">{{ paciente.especie }}{% if paciente.raza %} · {{ paciente.raza }}{% endif %}</small>
+        <div class="mt-2">
+          {% if paciente.sexo == 'M' %}<span class="badge bg-info">Macho</span>{% else %}<span class="badge" style="background:#e83e8c;">Hembra</span>{% endif %}
+          {% if paciente.esterilizado %}<span class="badge bg-secondary ms-1">Esterilizado</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body small">
+        <div class="mb-2"><strong>Propietario:</strong><br><a href="{% url 'clientes:detalle' paciente.propietario.pk %}">{{ paciente.propietario }}</a></div>
+        {% if paciente.peso %}<div class="mb-2"><strong>Peso:</strong> {{ paciente.peso }} kg</div>{% endif %}
+        {% if paciente.fecha_nacimiento %}<div class="mb-2"><strong>Nacimiento:</strong> {{ paciente.fecha_nacimiento }}</div>{% endif %}
+        {% if paciente.microchip %}<div class="mb-2"><strong>Microchip:</strong> {{ paciente.microchip }}</div>{% endif %}
+        {% if paciente.alergias %}<div class="mb-2 text-danger"><strong>Alergias:</strong> {{ paciente.alergias }}</div>{% endif %}
+        {% if paciente.condiciones_cronicas %}<div class="text-warning"><strong>Condiciones crónicas:</strong> {{ paciente.condiciones_cronicas }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="d-grid gap-2">
+      <a href="{% url 'pacientes:agregar_historial' paciente.pk %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-notes-medical me-1"></i>Nueva Consulta
+      </a>
+      <a href="{% url 'pacientes:editar' paciente.pk %}" class="btn btn-outline-primary btn-sm">
+        <i class="fas fa-edit me-1"></i>Editar ficha
+      </a>
+    </div>
+  </div>
+
+  <!-- Historial -->
+  <div class="col-md-9">
+    <div class="card">
+      <div class="card-header fw-bold"><i class="fas fa-notes-medical me-2 text-success"></i>Historial Médico</div>
+
+      {% for h in historial %}
+      <div class="p-3 border-bottom">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <strong>{{ h.motivo }}</strong>
+            <span class="badge ms-2
+              {% if h.estado == 'cerrada' %}bg-success
+              {% elif h.estado == 'seguimiento' %}bg-warning text-dark
+              {% else %}bg-info{% endif %}">
+              {{ h.get_estado_display }}
+            </span>
+            {% if h.cirugia_realizada %}<span class="badge bg-danger ms-1">Cirugía</span>{% endif %}
+          </div>
+          <small class="text-muted">{{ h.fecha|date:"d/m/Y H:i" }}</small>
+        </div>
+
+        <div class="row g-2 small mb-2">
+          <div class="col-md-6">
+            <span class="text-muted">Diagnóstico:</span>
+            {{ h.diagnostico_definitivo|default:h.diagnostico_presuntivo|default:"—" }}
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted">Tratamiento:</span> {{ h.tratamiento|truncatechars:80 }}
+          </div>
+          {% if h.descripcion_post_consulta %}
+          <div class="col-12">
+            <span class="badge bg-success me-1"><i class="fas fa-check"></i> Post-consulta registrada</span>
+            <span class="text-muted">{{ h.descripcion_post_consulta|truncatechars:100 }}</span>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <span class="badge bg-secondary me-1">Sin post-consulta</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'pacientes:detalle_historial' paciente.pk h.pk %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-eye me-1"></i>Ver consulta
+          </a>
+          {% if not h.consulta_cerrada %}
+          <a href="{% url 'pacientes:post_consulta' paciente.pk h.pk %}" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-pen me-1"></i>Post-consulta
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="card-body text-center text-muted py-5">
+        <i class="fas fa-notes-medical fa-3x mb-3 d-block"></i>
+        Sin historial médico registrado.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
