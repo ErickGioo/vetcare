@@ -8,7 +8,7 @@ class CitaForm(forms.ModelForm):
     class Meta:
         model = Cita
         fields = ['paciente', 'veterinario', 'tipo', 'fecha_hora', 'duracion_minutos', 'estado', 'motivo', 'notas']
-        widgets = {'fecha_hora': forms.DateTimeInput(attrs={'type': 'datetime-local'})}
+        widgets = {'fecha_hora': forms.DateTimeInput(format='%Y-%m-%dT%H:%M', attrs={'type': 'datetime-local'})}
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for f in self.fields.values():

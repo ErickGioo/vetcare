@@ -67,3 +67,10 @@ class TelevisionTests(TestCase):
         from .views import CitaForm
         form = CitaForm(dict(paciente=self.pet.pk, tipo='bano', fecha_hora=self.now.isoformat(), duracion_minutos=45, estado='pendiente', motivo='Baño de mantenimiento'))
         self.assertTrue(form.is_valid(), form.errors)
+
+    def test_review_edit_form_preserves_date_and_time(self):
+        appointment = self.appointment('pendiente')
+        from .views import CitaForm
+        form = CitaForm(instance=appointment)
+        expected = timezone.localtime(appointment.fecha_hora).strftime('%Y-%m-%dT%H:%M')
+        self.assertIn(f'value="{expected}"', str(form['fecha_hora']))
