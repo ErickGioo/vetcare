@@ -1,0 +1,16 @@
+<form method="get" class="card mb-4">
+    <div class="card-body row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label" for="desde">Desde</label>
+            <input class="form-control" type="date" id="desde" name="desde" value="{{ desde|date:'Y-m-d' }}">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="hasta">Hasta</label>
+            <input class="form-control" type="date" id="hasta" name="hasta" value="{{ hasta|date:'Y-m-d' }}">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button class="btn btn-primary" type="submit"><i class="fas fa-filter me-1"></i>Aplicar</button>
+            <a class="btn btn-outline-primary" href="{% url 'informes:resumen' %}">Este mes</a>
+        </div>
+    </div>
+</form>

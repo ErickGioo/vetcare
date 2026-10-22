@@ -4,15 +4,17 @@
 {% block content %}
 <div class="row justify-content-center"><div class="col-lg-9">
 <div class="card">
-    <div class="card-header">{{ titulo }}</div>
+    <div class="card-header d-flex justify-content-between align-items-center"><span>{{ titulo }}</span>{% if user.is_staff %}<a href="{% url 'pacientes:catalogos' %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-list me-1"></i>Especies y razas</a>{% endif %}</div>
     <div class="card-body">
         <form method="post" enctype="multipart/form-data">{% csrf_token %}
         <div class="row g-3">
         {% for field in form %}
         <div class="col-md-{% if field.name in 'alergias,condiciones_cronicas,notas' %}12{% else %}6{% endif %}">
-            <label class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+            {% if field.name == 'raza' %}<input type="search" id="buscar-raza" class="form-control mb-2" placeholder="Escribe las primeras letras de la raza" aria-label="Buscar raza por primeras letras" autocomplete="off"><small id="estado-razas" class="text-muted d-block mb-1" role="status">Selecciona una especie y busca la raza.</small>{% endif %}
             {{ field }}
             {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+            {% if field.help_text %}<div class="text-muted small mt-1">{{ field.help_text }}</div>{% endif %}
         </div>
         {% endfor %}
         </div>
@@ -24,4 +26,35 @@
     </div>
 </div>
 </div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(()=>{
+const species=document.getElementById('id_especie'),breed=document.getElementById('id_raza'),search=document.getElementById('buscar-raza'),status=document.getElementById('estado-razas');
+let timer,controller,version=0;
+async function load(reset){
+ const generation=++version;
+ if(controller)controller.abort();
+ controller=new AbortController();
+ if(reset)breed.value='';
+ const selected=breed.value,selectedText=breed.selectedOptions[0]?.textContent;
+ if(!species.value){breed.replaceChildren(new Option('Selecciona una especie',''));breed.disabled=true;search.disabled=true;status.textContent='Selecciona primero la especie.';return;}
+ search.disabled=false;breed.disabled=true;status.textContent='Buscando razas…';
+ const url=new URL('{% url "pacientes:razas" %}',window.location.origin);url.searchParams.set('especie',species.value);url.searchParams.set('q',search.value);
+ try{
+ const response=await fetch(url,{signal:controller.signal});if(!response.ok||response.redirected)throw new Error();
+ const data=await response.json();if(generation!==version)return;
+ breed.replaceChildren(new Option('-- Selecciona una raza --',''));
+ for(const r of data.razas)breed.add(new Option(r.nombre,r.id));
+ if(!reset&&selected&&!data.razas.some(r=>String(r.id)===selected))breed.add(new Option(selectedText,selected));
+ breed.value=reset?'':selected;breed.disabled=false;
+ status.textContent=data.razas.length?'Mostrando '+data.razas.length+' razas. Escribe más letras para afinar la búsqueda.':'No se encontraron razas para esta especie y búsqueda.';
+ }catch(error){if(generation!==version||error.name==='AbortError')return;status.textContent='No se pudieron cargar las razas. Reintenta la búsqueda.';breed.replaceChildren(new Option('Carga no disponible',''));breed.disabled=true;}
+}
+species.addEventListener('change',()=>{clearTimeout(timer);search.value='';load(true);});
+search.addEventListener('input',()=>{clearTimeout(timer);breed.value='';timer=setTimeout(()=>load(true),250);});
+load(false);
+})();
+</script>
 {% endblock %}

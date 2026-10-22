@@ -26,7 +26,7 @@
       <div class="card-body small">
         <div class="mb-2"><strong>Propietario:</strong><br><a href="{% url 'clientes:detalle' paciente.propietario.pk %}">{{ paciente.propietario }}</a></div>
         {% if paciente.peso %}<div class="mb-2"><strong>Peso:</strong> {{ paciente.peso }} kg</div>{% endif %}
-        {% if paciente.fecha_nacimiento %}<div class="mb-2"><strong>Nacimiento:</strong> {{ paciente.fecha_nacimiento }}</div>{% endif %}
+        {% if paciente.fecha_nacimiento %}<div class="mb-2"><strong>Nacimiento:</strong> {{ paciente.fecha_nacimiento|date:"d/m/Y" }}</div>{% endif %}
         {% if paciente.microchip %}<div class="mb-2"><strong>Microchip:</strong> {{ paciente.microchip }}</div>{% endif %}
         {% if paciente.alergias %}<div class="mb-2 text-danger"><strong>Alergias:</strong> {{ paciente.alergias }}</div>{% endif %}
         {% if paciente.condiciones_cronicas %}<div class="text-warning"><strong>Condiciones crónicas:</strong> {{ paciente.condiciones_cronicas }}</div>{% endif %}

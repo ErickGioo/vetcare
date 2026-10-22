@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.http import HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -13,6 +13,7 @@ from uuid import uuid4
 from .models import Venta, DetalleVenta, PagoNeonet, TransaccionHistorial
 from .neonet import checkout_fields, verify_response
 from productos.models import Producto
+from .operaciones import agregar_articulo, cambiar_cantidad, editable
 
 class VentaForm(forms.ModelForm):
     class Meta:
@@ -56,44 +57,65 @@ def crear(request):
 @login_required
 def detalle(request, pk):
     venta = get_object_or_404(Venta, pk=pk)
+    if request.method == 'POST':
+        try:
+            if 'agregar_item' in request.POST:
+                quantity = forms.IntegerField(min_value=1).clean(request.POST.get('cantidad'))
+                product_id = forms.IntegerField(min_value=1).clean(request.POST.get('producto'))
+                get_object_or_404(Producto, pk=product_id, activo=True)
+                agregar_articulo(pk, product_id, quantity, request.user)
+                messages.success(request, 'Artículo agregado y totales actualizados.')
+            elif 'actualizar_item' in request.POST or 'eliminar_item' in request.POST:
+                item_id = forms.IntegerField(min_value=1).clean(request.POST.get('item'))
+                get_object_or_404(DetalleVenta, pk=item_id, venta_id=pk)
+                quantity = 0 if 'eliminar_item' in request.POST else forms.IntegerField(min_value=1).clean(request.POST.get('cantidad'))
+                cambiar_cantidad(pk, item_id, quantity, request.user)
+                messages.success(request, 'Venta corregida. Inventario y totales actualizados.')
+            elif 'actualizar_pago' in request.POST:
+                method = forms.ChoiceField(choices=Venta.TIPO_PAGO_CHOICES).clean(request.POST.get('tipo_pago'))
+                with transaction.atomic():
+                    sale = Venta.objects.select_for_update().get(pk=pk)
+                    editable(sale)
+                    sale.tipo_pago = method
+                    sale.save(update_fields=['tipo_pago'])
+                messages.success(request, 'Forma de pago actualizada.')
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+        return redirect('ventas:detalle', pk=pk)
     items = venta.items.select_related('producto').all()
-    productos = Producto.objects.filter(activo=True, stock__gt=0)
-    if request.method == 'POST' and 'agregar_item' in request.POST:
-        producto_id = request.POST.get('producto')
-        cantidad = int(request.POST.get('cantidad', 1))
-        producto = get_object_or_404(Producto, pk=producto_id)
-        if cantidad <= producto.stock:
-            DetalleVenta.objects.create(
-                venta=venta, producto=producto,
-                cantidad=cantidad,
-                precio_unitario=producto.precio_final,
-                descuento_pct=producto.descuento
-            )
-            venta.calcular_totales()
-            messages.success(request, f'{producto.nombre} agregado.')
-        else:
-            messages.error(request, f'Stock insuficiente. Disponible: {producto.stock}')
-    return render(request, 'ventas/detalle.html', {'venta': venta, 'items': items, 'productos': productos})
+    productos = Producto.objects.filter(activo=True).filter(Q(stock__gt=0) | Q(tipo='servicio'))
+    return render(request, 'ventas/detalle.html', {'venta': venta, 'items': items, 'productos': productos, 'formas_pago':Venta.TIPO_PAGO_CHOICES})
 
 @login_required
 @require_POST
 def confirmar_pago(request, pk):
-    venta = get_object_or_404(Venta, pk=pk)
-    if venta.tipo_pago == 'tarjeta':
-        messages.error(request, 'Los pagos con tarjeta deben confirmarse desde NeoNet.')
-        return redirect('ventas:detalle', pk=venta.pk)
-    venta.estado = 'pagada'
-    venta.save()
-    TransaccionHistorial.objects.filter(tipo='venta', referencia_id=venta.pk).update(monto=venta.total)
+    with transaction.atomic():
+        venta = get_object_or_404(Venta.objects.select_for_update(), pk=pk)
+        if venta.estado != 'pendiente':
+            messages.info(request, 'Esta venta ya no está pendiente.')
+            return redirect('ventas:detalle', pk=pk)
+        if venta.pagos_neonet.filter(estado__in=['pendiente', 'aceptado']).exists():
+            messages.error(request, 'Existe un pago con tarjeta en proceso; verifica su resultado antes de cobrar nuevamente.')
+            return redirect('ventas:detalle', pk=pk)
+        if venta.tipo_pago == 'tarjeta':
+            messages.error(request, 'Los pagos con tarjeta deben confirmarse desde NeoNet.')
+            return redirect('ventas:detalle', pk=pk)
+        if not venta.items.exists() or venta.total <= 0:
+            messages.error(request, 'Agrega artículos con un total mayor que cero antes de confirmar el pago.')
+            return redirect('ventas:detalle', pk=pk)
+        venta.estado = 'pagada'
+        venta.save(update_fields=['estado'])
+        TransaccionHistorial.objects.filter(tipo='venta', referencia_id=venta.pk).update(monto=venta.total)
     messages.success(request, f'Venta #{venta.numero} pagada. Total: Q{venta.total}')
-    return redirect('ventas:lista')
+    return redirect('ventas:detalle', pk=pk)
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def iniciar_pago_neonet(request, pk):
-    venta = get_object_or_404(Venta, pk=pk)
-    if venta.estado == 'pagada':
+    venta = get_object_or_404(Venta.objects.select_for_update(), pk=pk)
+    if venta.estado != 'pendiente':
         messages.info(request, 'Esta venta ya fue pagada.')
         return redirect('ventas:detalle', pk=venta.pk)
     if not venta.items.exists() or venta.total <= 0:
@@ -102,6 +124,10 @@ def iniciar_pago_neonet(request, pk):
     if not all((settings.NEONET_ACCESS_KEY, settings.NEONET_PROFILE_ID, settings.NEONET_SECRET_KEY)):
         messages.error(request, 'NeoNet no está configurado. Agrega las credenciales sandbox o productivas.')
         return redirect('ventas:detalle', pk=venta.pk)
+
+    if venta.pagos_neonet.filter(estado__in=['pendiente', 'aceptado']).exists():
+        messages.error(request, 'Ya existe un pago con tarjeta en proceso para esta venta.')
+        return redirect('ventas:detalle', pk=pk)
 
     venta.tipo_pago = 'tarjeta'
     venta.save(update_fields=['tipo_pago'])
@@ -165,3 +191,9 @@ def respuesta_neonet(request):
 def historial(request):
     transacciones = TransaccionHistorial.objects.select_related('cliente', 'paciente', 'empleado').all()
     return render(request, 'ventas/historial.html', {'transacciones': transacciones})
+
+
+@login_required
+def comprobante(request, pk):
+    venta = get_object_or_404(Venta.objects.select_related('cliente', 'paciente'), pk=pk)
+    return render(request, 'ventas/comprobante.html', {'venta': venta, 'items': venta.items.select_related('producto')})

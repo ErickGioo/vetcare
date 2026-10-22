@@ -50,6 +50,9 @@ class DetalleVenta(models.Model):
     producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
     cantidad = models.IntegerField()
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    # Se conserva el costo vigente al registrar la venta para que las utilidades
+    # históricas no cambien cuando se actualice el precio de compra del producto.
+    costo_unitario = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descuento_pct = models.DecimalField(max_digits=5, decimal_places=2, default=0, verbose_name='Descuento %')
 
     class Meta:
@@ -73,9 +76,11 @@ class DetalleVenta(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        if is_new and not self.costo_unitario:
+            self.costo_unitario = self.producto.precio_compra
         super().save(*args, **kwargs)
         # Registrar movimiento de inventario si es nueva línea
-        if is_new:
+        if is_new and self.producto.tipo != 'servicio':
             stock_anterior = self.producto.stock
             self.producto.stock -= self.cantidad
             self.producto.save()
@@ -88,6 +93,14 @@ class DetalleVenta(models.Model):
                 motivo='Venta',
                 referencia=self.venta.numero,
             )
+
+    @property
+    def costo_total(self):
+        return self.costo_unitario * self.cantidad
+
+    @property
+    def ganancia_bruta(self):
+        return self.total - self.costo_total
 
 
 class TransaccionHistorial(models.Model):

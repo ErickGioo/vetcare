@@ -2,14 +2,14 @@
 {% block title %}Venta #{{ venta.numero }}{% endblock %}
 {% block page_title %}Venta #{{ venta.numero }}{% endblock %}
 {% block content %}
-<div class="row g-3">
+<p><a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{% url 'ventas:comprobante' venta.pk %}">Ver / imprimir comprobante</a></p><div class="row g-3">
 <div class="col-md-4">
 <div class="card mb-3"><div class="card-body">
 <h6 class="fw-bold text-muted mb-3">INFORMACIÓN</h6>
 <div class="mb-2"><small class="text-muted d-block">Cliente</small><strong>{{ venta.cliente }}</strong></div>
 {% if venta.paciente %}<div class="mb-2"><small class="text-muted d-block">Paciente</small><strong>{{ venta.paciente.nombre }}</strong></div>{% endif %}
 <div class="mb-2"><small class="text-muted d-block">Fecha</small>{{ venta.fecha|date:"d/m/Y H:i" }}</div>
-<div class="mb-2"><small class="text-muted d-block">Tipo de pago</small>{{ venta.get_tipo_pago_display }}</div>
+<div class="mb-2"><small class="text-muted d-block">Tipo de pago</small>{{ venta.get_tipo_pago_display }}{% if venta.estado == 'pendiente' %}<form method="post" class="d-flex gap-1 mt-2">{% csrf_token %}<select name="tipo_pago" class="form-select" aria-label="Forma de pago">{% for value,label in formas_pago %}<option value="{{ value }}" {% if value == venta.tipo_pago %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="btn btn-outline-primary" name="actualizar_pago" value="1">Guardar</button></form>{% endif %}</div>
 <div class="mb-2"><small class="text-muted d-block">Estado</small>
 {% if venta.estado == 'pagada' %}<span class="badge bg-success fs-6">Pagada</span>
 {% else %}<span class="badge bg-warning text-dark fs-6">{{ venta.get_estado_display }}</span>{% endif %}
@@ -43,7 +43,7 @@
 <div class="row g-2">
 <div class="col-md-7">
 <select name="producto" class="form-select"><option value="">-- Seleccionar producto --</option>
-{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} (Stock: {{ p.stock }}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
+{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} ({% if p.tipo == 'servicio' %}Servicio{% else %}Stock: {{ p.stock }}{% endif %}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
 </select>
 </div>
 <div class="col-md-3"><input type="number" name="cantidad" value="1" min="1" class="form-control" placeholder="Cant."></div>
@@ -54,7 +54,7 @@
 {% endif %}
 <div class="card"><div class="card-header">Productos</div>
 <table class="table table-hover mb-0">
-<thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Desc.</th><th>Total</th></tr></thead>
+<thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit.</th><th>Desc.</th><th>Total</th>{% if venta.estado == 'pendiente' %}<th>Corregir</th>{% endif %}</tr></thead>
 <tbody>
 {% for item in items %}
 <tr>
@@ -63,6 +63,7 @@
 <td>Q{{ item.precio_unitario }}</td>
 <td>{% if item.descuento_pct > 0 %}{{ item.descuento_pct }}%{% else %}-{% endif %}</td>
 <td>Q{{ item.total|floatformat:2 }}</td>
+{% if venta.estado == 'pendiente' %}<td><form method="post" class="d-flex gap-1">{% csrf_token %}<input type="hidden" name="item" value="{{ item.pk }}"><input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="2147483647" class="form-control form-control-sm" style="width:85px" aria-label="Cantidad de {{ item.producto.nombre }}"><button class="btn btn-sm btn-outline-primary" name="actualizar_item" value="1">Actualizar</button><button class="btn btn-sm btn-outline-danger" name="eliminar_item" value="1" onclick="return confirm('¿Quitar este artículo de la venta?')">Quitar</button></form></td>{% endif %}
 </tr>
 {% empty %}
 <tr><td colspan="5" class="text-center text-muted py-3">Sin productos agregados</td></tr>

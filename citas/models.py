@@ -15,13 +15,16 @@ class Cita(models.Model):
         ('consulta', 'Consulta general'),
         ('vacuna', 'Vacunación'),
         ('cirugia', 'Cirugía'),
-        ('peluqueria', 'Peluquería'),
+        ('peluqueria', 'Grooming / peluquería'),
+        ('bano', 'Baño'),
+        ('corte_unas', 'Corte de uñas'),
         ('control', 'Control'),
         ('urgencia', 'Urgencia'),
         ('otro', 'Otro'),
     ]
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='citas')
-    veterinario = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='citas')
+    veterinario = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='citas', verbose_name='Profesional responsable (opcional)')
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='consulta')
     fecha_hora = models.DateTimeField(verbose_name='Fecha y hora')
     duracion_minutos = models.IntegerField(default=30, verbose_name='Duración (min)')

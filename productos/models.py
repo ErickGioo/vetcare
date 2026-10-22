@@ -58,7 +58,7 @@ class Producto(models.Model):
 
     @property
     def stock_bajo(self):
-        return self.stock <= self.stock_minimo
+        return self.tipo != 'servicio' and self.stock <= self.stock_minimo
 
 
 class MovimientoInventario(models.Model):

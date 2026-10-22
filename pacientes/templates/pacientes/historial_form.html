@@ -3,7 +3,9 @@
 {% block page_title %}Nueva Consulta — {{ paciente.nombre }}{% endblock %}
 {% block content %}
 <form method="post">{% csrf_token %}
+{% if form.errors %}<div class="alert alert-danger">Revisa los campos indicados: {{ form.errors }}</div>{% endif %}
 
+<div class="card card-body mb-4"><h5>Servicio y comprobante de atención</h5>{{ billing.as_p }}<p class="small text-muted">Si no aparece una tarifa, registra primero un producto de tipo Servicio con su precio. <a href="{% url 'productos:crear' %}">Configurar servicio</a></p></div>
   <!-- Datos clínicos -->
   <div class="card mb-4">
     <div class="card-header fw-bold"><i class="fas fa-stethoscope me-2 text-success"></i>Datos de la Consulta</div>
@@ -41,7 +43,7 @@
           <small class="text-muted">Diagnóstico inicial antes de pruebas</small>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Diagnóstico definitivo</label>
+          <label class="form-label">Diagnóstico definitivo{% if form.diagnostico_definitivo.field.required %} <span class="text-danger">*</span>{% endif %}</label>
           {{ form.diagnostico_definitivo }}
         </div>
         <div class="col-md-6">
@@ -89,8 +91,8 @@
     <div class="card-header fw-bold"><i class="fas fa-calendar-check me-2 text-info"></i>Seguimiento</div>
     <div class="card-body">
       <div class="row g-3">
-        <div class="col-md-3"><label class="form-label">Estado</label>{{ form.estado }}</div>
-        <div class="col-md-3"><label class="form-label">Próxima cita</label>{{ form.proxima_cita }}</div>
+        <div class="col-md-3"><label class="form-label">Estado{% if form.estado.field.required %} <span class="text-danger">*</span>{% endif %}</label>{{ form.estado }}</div>
+        <div class="col-md-3"><label class="form-label">Próxima cita</label>{{ form.proxima_cita }}<label class="form-label mt-2" for="id_proxima_hora">Hora de revisión</label>{{ form.proxima_hora }}<small class="text-muted d-block">La revisión se agregará automáticamente a Citas.</small></div>
         <div class="col-md-6"><label class="form-label">Motivo próxima cita</label>{{ form.motivo_proxima_cita }}</div>
         <div class="col-md-6"><label class="form-label">Médico tratante</label>{{ form.veterinario }}</div>
         <div class="col-md-6"><label class="form-label">Observaciones internas</label>{{ form.observaciones }}</div>

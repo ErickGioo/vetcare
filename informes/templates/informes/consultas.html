@@ -1,0 +1,9 @@
+{% extends 'base/base.html' %}
+{% block title %}Informes para dueños{% endblock %}
+{% block page_title %}Informes de atención para dueños{% endblock %}
+{% block content %}
+<p>Selecciona una consulta para imprimir el informe o guardarlo como PDF. Las notas internas no se incluyen.</p>
+<form class="d-flex gap-2 mb-3"><input class="form-control" name="q" value="{{ query }}" placeholder="Buscar mascota o dueño" aria-label="Buscar mascota o dueño"><button class="btn btn-primary">Buscar</button></form>
+<div class="card"><table class="table mb-0"><thead><tr><th>Fecha</th><th>Mascota</th><th>Dueño</th><th>Estado</th><th>Informe</th></tr></thead><tbody>{% for h in page %}<tr><td>{{ h.fecha|date:'d/m/Y' }}</td><td>{{ h.paciente.nombre }}</td><td>{{ h.paciente.propietario }}</td><td>{{ h.get_estado_display }}</td><td><a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" href="{% url 'informes:propietario' h.pk %}">Ver / Imprimir</a></td></tr>{% empty %}<tr><td colspan="5">No hay consultas registradas.</td></tr>{% endfor %}</tbody></table></div>
+<div class="mt-3">{% if page.has_previous %}<a href="?q={{ query|urlencode }}&pagina={{ page.previous_page_number }}">Anterior</a>{% endif %} · Página {{ page.number }} de {{ page.paginator.num_pages }} · {% if page.has_next %}<a href="?q={{ query|urlencode }}&pagina={{ page.next_page_number }}">Siguiente</a>{% endif %}</div>
+{% endblock %}

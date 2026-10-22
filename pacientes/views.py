@@ -1,9 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.db.models import Q
-from .models import Paciente, HistorialMedico
-from .forms import PacienteForm, HistorialMedicoForm, PostConsultaForm
+from .models import Especie, Paciente, HistorialMedico, Raza
+from .forms import EspecieForm, PacienteForm, HistorialMedicoForm, PostConsultaForm, RazaForm
+from .forms import ServicioConsultaForm
+from .integracion import facturar_consulta, sincronizar_revision
+from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST, require_GET
+
+
+staff_required = user_passes_test(lambda user: user.is_staff)
 
 
 @login_required
@@ -58,15 +68,22 @@ def detalle(request, pk):
 def agregar_historial(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk)
     form = HistorialMedicoForm(request.POST or None)
-    if form.is_valid():
-        h = form.save(commit=False)
-        h.paciente = paciente
-        if not h.veterinario_id:
-            h.veterinario = request.user
-        h.save()
-        messages.success(request, 'Consulta registrada correctamente.')
-        return redirect('pacientes:detalle_historial', pk=pk, historial_pk=h.pk)
-    return render(request, 'pacientes/historial_form.html', {'form': form, 'paciente': paciente})
+    billing = ServicioConsultaForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid() and billing.is_valid():
+        try:
+            with transaction.atomic():
+                h = form.save(commit=False)
+                h.paciente = paciente
+                if not h.veterinario_id:
+                    h.veterinario = request.user
+                h.save()
+                facturar_consulta(h.pk, billing.cleaned_data['servicio'].pk, request.user)
+                sincronizar_revision(h.pk)
+            messages.success(request, 'Consulta registrada con venta pendiente y revisión agendada, si fue indicada.')
+            return redirect('pacientes:detalle_historial', pk=pk, historial_pk=h.pk)
+        except ValidationError as error:
+            form.add_error(None, error)
+    return render(request, 'pacientes/historial_form.html', {'form': form, 'paciente': paciente, 'billing': billing})
 
 
 @login_required
@@ -76,6 +93,7 @@ def detalle_historial(request, pk, historial_pk):
     return render(request, 'pacientes/historial_detalle.html', {
         'paciente': paciente,
         'historial': historial,
+        'billing': ServicioConsultaForm(),
     })
 
 
@@ -91,12 +109,77 @@ def post_consulta(request, pk, historial_pk):
 
     form = PostConsultaForm(request.POST or None, instance=historial)
     if form.is_valid():
-        form.save()
-        messages.success(request, 'Descripción post-consulta guardada.')
-        return redirect('pacientes:detalle_historial', pk=pk, historial_pk=historial_pk)
+        try:
+            with transaction.atomic():
+                locked = HistorialMedico.objects.select_for_update().get(pk=historial_pk)
+                if locked.consulta_cerrada:
+                    raise ValidationError('Esta consulta ya está cerrada.')
+                form.instance.venta_id = locked.venta_id
+                form.instance.detalle_servicio_id = locked.detalle_servicio_id
+                form.instance.cita_revision_id = locked.cita_revision_id
+                form.save()
+                sincronizar_revision(historial_pk)
+            messages.success(request, 'Postconsulta guardada. La revisión indicada ya aparece en Citas.')
+            return redirect('pacientes:detalle_historial', pk=pk, historial_pk=historial_pk)
+        except ValidationError as error:
+            form.add_error(None, error)
 
     return render(request, 'pacientes/post_consulta_form.html', {
         'form': form,
         'paciente': paciente,
         'historial': historial,
+    })
+
+
+@login_required
+@require_GET
+def razas(request):
+    species = request.GET.get('especie', '')
+    if not species.isdigit():
+        return JsonResponse({'razas': []})
+    breeds = Raza.objects.filter(especie_id=species, nombre__istartswith=request.GET.get('q', '').strip()[:100]).order_by('nombre')[:100]
+    return JsonResponse({'razas': list(breeds.values('id', 'nombre'))})
+
+
+@login_required
+@require_POST
+def facturar(request, pk, historial_pk):
+    history = get_object_or_404(HistorialMedico, pk=historial_pk, paciente_id=pk)
+    form = ServicioConsultaForm(request.POST)
+    if form.is_valid():
+        try:
+            sale = facturar_consulta(history.pk, form.cleaned_data['servicio'].pk, request.user)
+            return redirect('ventas:detalle', pk=sale.pk)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+    else:
+        messages.error(request, 'Selecciona un servicio válido para facturar la atención.')
+    return redirect('pacientes:detalle_historial', pk=pk, historial_pk=historial_pk)
+
+
+@staff_required
+def catalogos(request):
+    """Catálogos clínicos disponibles únicamente para administradores del sistema."""
+    especie_form = EspecieForm(prefix='especie')
+    raza_form = RazaForm(prefix='raza')
+
+    if request.method == 'POST':
+        if 'guardar_especie' in request.POST:
+            especie_form = EspecieForm(request.POST, prefix='especie')
+            if especie_form.is_valid():
+                especie_form.save()
+                messages.success(request, 'Especie agregada correctamente.')
+                return redirect('pacientes:catalogos')
+        elif 'guardar_raza' in request.POST:
+            raza_form = RazaForm(request.POST, prefix='raza')
+            if raza_form.is_valid():
+                raza_form.save()
+                messages.success(request, 'Raza agregada correctamente.')
+                return redirect('pacientes:catalogos')
+
+    especies = Especie.objects.prefetch_related('razas').order_by('nombre')
+    return render(request, 'pacientes/catalogos.html', {
+        'especie_form': especie_form,
+        'raza_form': raza_form,
+        'especies': especies,
     })

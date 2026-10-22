@@ -1,0 +1,33 @@
+{% extends 'base/base.html' %}
+{% block title %}Catálogos clínicos{% endblock %}
+{% block page_title %}Catálogos clínicos{% endblock %}
+{% block content %}
+<div class="alert alert-info"><i class="fas fa-shield-alt me-1"></i>Solo el personal administrador puede administrar estas listas.</div>
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card mb-4"><div class="card-header">Nueva especie</div><div class="card-body">
+      <form method="post">{% csrf_token %}
+        <label class="form-label">{{ especie_form.nombre.label }} <span class="text-danger">*</span></label>
+        {{ especie_form.nombre }}
+        {% if especie_form.nombre.errors %}<div class="text-danger small mt-1">{{ especie_form.nombre.errors }}</div>{% endif %}
+        <button class="btn btn-primary mt-3" name="guardar_especie" value="1" type="submit">Agregar especie</button>
+      </form>
+    </div></div>
+    <div class="card"><div class="card-header">Nueva raza</div><div class="card-body">
+      <form method="post">{% csrf_token %}
+        <div class="mb-3"><label class="form-label">{{ raza_form.especie.label }} <span class="text-danger">*</span></label>{{ raza_form.especie }}{% if raza_form.especie.errors %}<div class="text-danger small mt-1">{{ raza_form.especie.errors }}</div>{% endif %}</div>
+        <label class="form-label">{{ raza_form.nombre.label }} <span class="text-danger">*</span></label>{{ raza_form.nombre }}{% if raza_form.nombre.errors %}<div class="text-danger small mt-1">{{ raza_form.nombre.errors }}</div>{% endif %}
+        <button class="btn btn-primary mt-3" name="guardar_raza" value="1" type="submit">Agregar raza</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-7"><div class="card"><div class="card-header">Especies y razas registradas</div>
+    <div class="list-group list-group-flush">
+    {% for especie in especies %}
+      <div class="list-group-item"><strong>{{ especie.nombre }}</strong>
+      <div class="text-muted small mt-1">{% for raza in especie.razas.all %}{{ raza.nombre }}{% if not forloop.last %} · {% endif %}{% empty %}Sin razas registradas{% endfor %}</div></div>
+    {% empty %}<div class="list-group-item text-muted">Aún no hay especies registradas.</div>{% endfor %}
+    </div>
+  </div></div>
+</div>
+{% endblock %}

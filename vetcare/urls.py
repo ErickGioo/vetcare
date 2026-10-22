@@ -16,13 +16,13 @@ def dashboard(request):
     from citas.models import Cita
     from productos.models import Producto
     from ventas.models import Venta
-    from django.db.models import Sum
+    from django.db.models import Sum, F
 
     hoy = timezone.now().date()
     total_pacientes = Paciente.objects.filter(estado='activo').count()
     citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).count()
     ventas_hoy = Venta.objects.filter(fecha__date=hoy, estado='pagada').aggregate(t=Sum('total'))['t'] or 0
-    productos_stock_bajo = Producto.objects.filter(activo=True, stock__lte=5)[:5]
+    productos_stock_bajo = Producto.objects.filter(activo=True, stock__lte=F('stock_minimo')).exclude(tipo='servicio')[:5]
     proximas_citas = Cita.objects.filter(
         fecha_hora__gte=timezone.now(), estado__in=['pendiente','confirmada']
     ).select_related('paciente','veterinario').order_by('fecha_hora')[:5]
@@ -48,4 +48,5 @@ urlpatterns = [
     path('empleados/', include('empleados.urls')),
     path('citas/', include('citas.urls')),
     path('ventas/', include('ventas.urls')),
+    path('informes/', include('informes.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

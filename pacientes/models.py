@@ -105,8 +105,15 @@ class HistorialMedico(models.Model):
     proxima_cita = models.DateField(null=True, blank=True, verbose_name='Fecha próxima cita')
     motivo_proxima_cita = models.CharField(max_length=200, blank=True,
         verbose_name='Motivo próxima cita')
+    proxima_hora = models.TimeField(null=True, blank=True, verbose_name='Hora de revisión')
+    cita_revision = models.OneToOneField('citas.Cita', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='consulta_origen')
+    venta = models.OneToOneField('ventas.Venta', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='consulta_origen')
+    detalle_servicio = models.OneToOneField('ventas.DetalleVenta', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='consulta_facturada')
 
-    veterinario = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True,
+    veterinario = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='consultas', verbose_name='Médico tratante')
     observaciones = models.TextField(blank=True, verbose_name='Observaciones internas',
         help_text='Notas internas del equipo médico (no visibles al propietario)')

@@ -9,11 +9,11 @@
 {% endfor %}
 <a href="?" class="btn btn-sm btn-outline-secondary">Todas</a>
 </div>
-<a href="{% url 'citas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Cita</a>
+<div class="d-flex gap-2"><a href="{% url 'citas:television' %}" class="btn btn-outline-primary" target="_blank" rel="noopener">Pantalla TV</a><a href="{% url 'citas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Cita</a></div>
 </div>
 <div class="card">
 <table class="table table-hover mb-0">
-<thead><tr><th>Paciente</th><th>Dueño</th><th>Veterinario</th><th>Fecha/Hora</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
+<thead><tr><th>Paciente</th><th>Dueño</th><th>Responsable</th><th>Fecha/Hora</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr></thead>
 <tbody>
 {% for c in citas %}
 <tr>

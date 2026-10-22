@@ -1,5 +1,18 @@
 from django import forms
-from .models import Paciente, HistorialMedico
+from .models import Especie, HistorialMedico, Paciente, Raza
+from productos.models import Producto
+from django.utils import timezone
+
+
+DATE_WIDGET = forms.DateInput(
+    format='%d/%m/%Y',
+    attrs={
+        'class': 'form-control',
+        'placeholder': 'dd/mm/aaaa',
+        'inputmode': 'numeric',
+        'autocomplete': 'off',
+    },
+)
 
 
 class PacienteForm(forms.ModelForm):
@@ -10,6 +23,7 @@ class PacienteForm(forms.ModelForm):
             'color', 'peso', 'esterilizado', 'microchip', 'alergias',
             'condiciones_cronicas', 'foto', 'estado', 'notas',
         ]
+        widgets = {'fecha_nacimiento': DATE_WIDGET}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -23,9 +37,44 @@ class PacienteForm(forms.ModelForm):
                 w.attrs.update({'class': 'form-control', 'rows': 3})
             else:
                 w.attrs['class'] = 'form-control'
+        self.fields['fecha_nacimiento'].input_formats = ['%d/%m/%Y', '%Y-%m-%d']
+        self.fields['fecha_nacimiento'].help_text = 'Formato: dd/mm/aaaa'
+        species = self.data.get(self.add_prefix('especie')) if self.is_bound else self.instance.especie_id
+        try:
+            species = int(species)
+        except (ValueError, TypeError):
+            species = None
+        self.fields['raza'].queryset = Raza.objects.filter(especie_id=species).order_by('nombre') if species else Raza.objects.none()
 
 
-class HistorialMedicoForm(forms.ModelForm):
+class RevisionValidation:
+    def clean(self):
+        data = super().clean()
+        day, hour = data.get('proxima_cita'), data.get('proxima_hora')
+        if day and not hour:
+            self.add_error('proxima_hora', 'Indica la hora para agregar la revisión a la agenda.')
+        if hour and not day:
+            self.add_error('proxima_cita', 'Indica la fecha de revisión.')
+        if day and hour:
+            from datetime import datetime
+            when = timezone.make_aware(datetime.combine(day, hour))
+            if when < timezone.now() and (day != self.instance.proxima_cita or hour != self.instance.proxima_hora):
+                self.add_error('proxima_cita', 'La revisión debe agendarse en una fecha y hora futuras.')
+        return data
+
+
+class ServicioConsultaForm(forms.Form):
+    servicio = forms.ModelChoiceField(queryset=Producto.objects.none(), label='Servicio a facturar',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text='La atención genera una venta pendiente. El ingreso se registra al confirmar el pago.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['servicio'].queryset = Producto.objects.filter(activo=True, tipo='servicio', precio_venta__gt=0, descuento__gte=0, descuento__lt=100).order_by('nombre')
+        self.fields['servicio'].label_from_instance = lambda p: f'{p.nombre} · Q{p.precio_final:.2f}'
+
+
+class HistorialMedicoForm(RevisionValidation, forms.ModelForm):
     class Meta:
         model = HistorialMedico
         fields = [
@@ -34,9 +83,10 @@ class HistorialMedicoForm(forms.ModelForm):
             'diagnostico_presuntivo', 'diagnostico_definitivo',
             'examenes_solicitados', 'resultados_examenes',
             'tratamiento', 'medicamentos', 'cirugia_realizada', 'detalle_cirugia',
-            'estado', 'proxima_cita', 'motivo_proxima_cita',
+            'estado', 'proxima_cita', 'proxima_hora', 'motivo_proxima_cita',
             'veterinario', 'observaciones',
         ]
+        widgets = {'proxima_cita': DATE_WIDGET, 'proxima_hora': forms.TimeInput(format='%H:%M', attrs={'type':'time'})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,9 +101,11 @@ class HistorialMedicoForm(forms.ModelForm):
                 w.attrs.update({'class': 'form-control', 'rows': rows})
             else:
                 w.attrs['class'] = 'form-control'
+        self.fields['proxima_cita'].input_formats = ['%d/%m/%Y', '%Y-%m-%d']
+        self.fields['proxima_cita'].help_text = 'Formato: dd/mm/aaaa'
 
 
-class PostConsultaForm(forms.ModelForm):
+class PostConsultaForm(RevisionValidation, forms.ModelForm):
     class Meta:
         model = HistorialMedico
         fields = [
@@ -63,6 +115,7 @@ class PostConsultaForm(forms.ModelForm):
             'recomendaciones_propietario',
             'estado',
             'proxima_cita',
+            'proxima_hora',
             'motivo_proxima_cita',
             'observaciones',
         ]
@@ -73,6 +126,43 @@ class PostConsultaForm(forms.ModelForm):
             'resultados_examenes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
-            'proxima_cita': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'proxima_cita': DATE_WIDGET,
+            'proxima_hora': forms.TimeInput(format='%H:%M', attrs={'type':'time', 'class':'form-control'}),
             'motivo_proxima_cita': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['proxima_cita'].input_formats = ['%d/%m/%Y', '%Y-%m-%d']
+        self.fields['proxima_cita'].help_text = 'Formato: dd/mm/aaaa'
+
+
+class EspecieForm(forms.ModelForm):
+    class Meta:
+        model = Especie
+        fields = ['nombre']
+        widgets = {'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Canino'})}
+
+    def clean_nombre(self):
+        nombre = self.cleaned_data['nombre'].strip()
+        if Especie.objects.filter(nombre__iexact=nombre).exists():
+            raise forms.ValidationError('Esta especie ya existe.')
+        return nombre
+
+
+class RazaForm(forms.ModelForm):
+    class Meta:
+        model = Raza
+        fields = ['especie', 'nombre']
+        widgets = {
+            'especie': forms.Select(attrs={'class': 'form-select'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Labrador Retriever'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        especie = cleaned_data.get('especie')
+        nombre = (cleaned_data.get('nombre') or '').strip()
+        if especie and nombre and Raza.objects.filter(especie=especie, nombre__iexact=nombre).exists():
+            self.add_error('nombre', 'Esta raza ya existe para la especie seleccionada.')
+        return cleaned_data

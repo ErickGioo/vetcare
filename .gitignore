@@ -12,3 +12,8 @@ media/
 staticfiles/
 *.zip
 .DS_Store
+
+# Archivos de trabajo, entregables generados y respaldos locales
+.artifact_build/
+entregables/
+*.dump

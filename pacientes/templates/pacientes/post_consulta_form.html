@@ -9,6 +9,7 @@
 </div>
 
 <form method="post">{% csrf_token %}
+{% if form.errors %}<div class="alert alert-danger">Revisa los campos indicados: {{ form.errors }}</div>{% endif %}
   <div class="card mb-4">
     <div class="card-header fw-bold" style="background:#e8f5ee; color:#0f3d2e;">
       <i class="fas fa-clipboard-check me-2"></i>Completar consulta
@@ -17,7 +18,7 @@
       <div class="row g-4">
 
         <div class="col-12">
-          <label class="form-label fw-bold">Diagnóstico definitivo</label>
+          <label class="form-label fw-bold">Diagnóstico definitivo{% if form.diagnostico_definitivo.field.required %} <span class="text-danger">*</span>{% endif %}</label>
           {{ form.diagnostico_definitivo }}
           {% if form.diagnostico_definitivo.errors %}<div class="text-danger small">{{ form.diagnostico_definitivo.errors }}</div>{% endif %}
         </div>
@@ -44,12 +45,12 @@
         </div>
 
         <div class="col-md-4">
-          <label class="form-label fw-bold">Estado de la consulta</label>
+          <label class="form-label fw-bold">Estado de la consulta{% if form.estado.field.required %} <span class="text-danger">*</span>{% endif %}</label>
           {{ form.estado }}
         </div>
         <div class="col-md-4">
           <label class="form-label fw-bold">Próxima cita</label>
-          {{ form.proxima_cita }}
+          {{ form.proxima_cita }}<label class="form-label mt-2" for="id_proxima_hora">Hora de revisión</label>{{ form.proxima_hora }}<small class="text-muted d-block">La revisión se agregará automáticamente a Citas.</small>
         </div>
         <div class="col-md-4">
           <label class="form-label fw-bold">Motivo próxima cita</label>

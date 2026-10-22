@@ -1,0 +1,83 @@
+{% load tz %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vetcare · Citas del día</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b1420;color:#edf4fc}
+    *{box-sizing:border-box}body{margin:0;padding:2.6vh 3vw;min-height:100vh}header,.identity,.top-actions,.summary,.column-title,footer,.card-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+    header{margin-bottom:2.6vh}.identity{justify-content:flex-start}.logo{width:54px;height:54px;border-radius:18px;background:#36d4b0;color:#0b1420;display:grid;place-items:center;font-size:32px;font-weight:900}.brand{font-size:24px;font-weight:750;letter-spacing:-1px}.eyebrow{color:#9aaec5;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:4px}h1{font-size:clamp(24px,2.4vw,42px);margin:0 0 4px;letter-spacing:-1px}.date{color:#9aaec5;font-size:clamp(14px,1.15vw,22px)}.clock{font-size:clamp(24px,2.5vw,46px);font-variant-numeric:tabular-nums;font-weight:650}.top-actions{gap:24px}button{border:1px solid #314157;background:#152235;color:#c6d5e7;padding:10px 14px;border-radius:10px;cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #36d4b0}
+    .summary{background:#132133;border:1px solid #26374c;border-radius:18px;padding:16px 24px;margin-bottom:2.5vh}.metric{display:flex;align-items:baseline;gap:12px}.metric strong{font-size:clamp(26px,2.2vw,40px)}.metric span{color:#b3c4d9;font-size:clamp(14px,1.1vw,20px)}.progress-block{min-width:25%;font-size:14px;color:#b3c4d9}.progress-label{display:flex;justify-content:space-between;margin-bottom:8px}.track{height:7px;background:#26374c;border-radius:20px;overflow:hidden}.fill{height:100%;background:#36d4b0}
+    .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}.column{--accent:#a9bfff;--tint:#1b2945;border:1px solid #243348;border-radius:18px;background:#101c2b;padding:18px;min-width:0}.active{--accent:#5de2c2;--tint:#15392f}.finished{--accent:#b1becd;--tint:#293441}.column-title{padding-bottom:16px;border-bottom:1px solid #28384b;margin-bottom:16px}.column-title h2{font-size:clamp(18px,1.5vw,28px);margin:0;font-weight:650}.step{font-size:13px;color:var(--accent);margin-bottom:5px;letter-spacing:2px}.count{font-size:26px;color:var(--accent);background:var(--tint);padding:5px 14px;border-radius:12px}.cards{display:grid;gap:12px}.card{border:1px solid #2b3d52;border-left:4px solid var(--accent);background:#182638;border-radius:12px;padding:14px 16px;min-height:110px}.card time{font-size:clamp(18px,1.5vw,27px);font-weight:700;font-variant-numeric:tabular-nums}.badge{font-size:clamp(11px,.85vw,16px);color:var(--accent);background:var(--tint);border-radius:6px;padding:5px 9px}.badge.cancelada,.badge.no_asistio{color:#f4bdad;background:#402e2d}.pet{font-size:clamp(24px,2vw,36px);font-weight:750;margin:6px 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.service{font-size:clamp(14px,1.05vw,20px);color:#b3c4d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.empty{display:grid;place-content:center;text-align:center;color:#91a4bc;min-height:230px;line-height:1.8}.empty strong{font-size:22px;color:#d0ddec}.empty-day{text-align:center;padding:9vh 20px;border:1px dashed #32485f;border-radius:18px}.empty-day h2{font-size:38px}.empty-day p{font-size:23px;color:#a2b7cd}footer{margin-top:20px;color:#94a9c1;font-size:14px}.status{display:flex;align-items:center;gap:8px}.dot{width:8px;height:8px;border-radius:50%;background:#36d4b0}.offline .dot{background:#ffbc73}.offline{color:#ffbc73}a{color:#94a9c1;text-decoration:none}.page{font-variant-numeric:tabular-nums}
+    @media(min-height:1000px){.card{min-height:15vh;padding:20px}.cards{gap:18px}}
+    @media(max-width:850px){body{padding:20px}.brand,.eyebrow{display:none}.summary{flex-wrap:wrap}.progress-block{width:100%}.board{grid-template-columns:1fr}.card{min-height:120px}header{flex-wrap:wrap}.top-actions{margin-left:auto}footer{flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="identity"><div class="logo" aria-hidden="true">✚</div><div><div class="brand">vetcare</div><div class="eyebrow">Cuidamos de ellos</div></div></div>
+    <div><h1>Citas del día</h1><div class="date" id="today">{{ today|date:"l d \d\e F \d\e Y" }}</div></div>
+    <div class="top-actions"><time class="clock" id="clock"></time><button id="fullscreen" type="button">Pantalla completa</button></div>
+  </header>
+  <main id="live" data-pages="{{ pages }}" data-page="{{ page }}" data-updated="{{ updated }}">
+    <section class="summary" aria-label="Resumen del día">
+      <div class="metric"><strong>{{ total }}</strong><span>Citas hoy</span></div>
+      <div class="metric"><strong>{{ completed }}</strong><span>Completadas</span></div>
+      <div class="metric"><strong>{{ cancelled }}</strong><span>Canceladas</span></div>
+      <div class="metric"><strong>{{ absent }}</strong><span>No asistieron</span></div>
+      <div class="progress-block"><div class="progress-label"><span>Citas finalizadas / total</span><strong>{{ progress }}%</strong></div><div class="track"><div class="fill" style="width:{{ progress }}%"></div></div></div>
+    </section>
+    {% if total %}
+    <section class="board" aria-label="Seguimiento de citas">
+      {% for group in groups %}
+      <section class="column {{ group.key }}">
+        <div class="column-title"><div><div class="step">{{ group.number }}</div><h2>{{ group.title }}</h2></div><span class="count">{{ group.total }}</span></div>
+        <div class="cards">
+        {% for cita in group.items %}
+          <article class="card">
+            <div class="card-top"><time datetime="{{ cita.fecha_hora|date:'c' }}">{{ cita.fecha_hora|localtime|date:"H:i" }}</time><span class="badge {{ cita.estado }}">{{ cita.get_estado_display }}</span></div>
+            <div class="pet">{{ cita.paciente.nombre }}</div>
+            <div class="service">{{ cita.get_tipo_display }}{% if cita.paciente.especie %} · {{ cita.paciente.especie.nombre }}{% endif %}</div>
+          </article>
+        {% empty %}
+          <div class="empty"><strong>Sin citas</strong><span>en esta etapa</span></div>
+        {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </section>
+    {% else %}
+    <section class="empty-day"><h2>Todo listo para un nuevo día</h2><p>No hay citas agendadas para hoy.</p><p>Las nuevas citas aparecerán automáticamente.</p></section>
+    {% endif %}
+  </main>
+  <footer><div class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Actualizado</span></div><span>Los estados se actualizan desde Citas · Vista de solo lectura</span><span class="page" id="page"></span><a href="{% url 'citas:lista' %}">Volver a Citas</a></footer>
+  <script>
+    const zone = 'America/Guatemala';
+    const clock = document.getElementById('clock');
+    function tick(){clock.textContent=new Intl.DateTimeFormat('es-GT',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date());}
+    tick();setInterval(tick,1000);
+    const status=document.getElementById('status'),statusText=document.getElementById('status-text');
+    function updated(){const live=document.getElementById('live');document.getElementById('page').textContent=Number(live.dataset.pages)>1?'Vista '+live.dataset.page+' de '+live.dataset.pages+' · Rotación automática':'';statusText.textContent='Actualizado '+new Intl.DateTimeFormat('es-GT',{timeZone:zone,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(live.dataset.updated));}
+    updated();
+    document.getElementById('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement){await document.exitFullscreen();}else{await document.documentElement.requestFullscreen();}}catch(e){document.getElementById('fullscreen').textContent='Usa pantalla completa del navegador';}});
+    document.addEventListener('fullscreenchange',()=>{document.getElementById('fullscreen').textContent=document.fullscreenElement?'Salir de pantalla completa':'Pantalla completa';});
+    async function refresh(){
+      const live=document.getElementById('live'),url=new URL(window.location.href);
+      url.searchParams.set('pagina',Number(live.dataset.page)%Number(live.dataset.pages)+1);
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+      try{
+        const response=await fetch(url,{cache:'no-store',signal:controller.signal});
+        const html=new DOMParser().parseFromString(await response.text(),'text/html');
+        const replacement=html.getElementById('live');
+        if(!response.ok||!replacement)throw new Error('No disponible');
+        live.replaceWith(replacement);document.getElementById('today').textContent=html.getElementById('today').textContent;
+        status.classList.remove('offline');updated();
+      }catch(e){status.classList.add('offline');statusText.textContent='Sin actualización · Mostrando datos de '+new Intl.DateTimeFormat('es-GT',{timeZone:zone,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(live.dataset.updated))+' · Si persiste, revisa la conexión o inicia sesión de nuevo';}
+      finally{clearTimeout(timeout);setTimeout(refresh,20000);}
+    }
+    setTimeout(refresh,20000);
+  </script>
+</body>
+</html>

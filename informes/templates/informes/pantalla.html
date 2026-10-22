@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="300">
+    <title>VetCare | Panel de recepción</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --green:#0f4530; --green2:#1a6b4a; --accent:#f0a500; --bg:#edf4f0; --text:#183327; }
+        * { box-sizing: border-box; } body { margin:0; color:var(--text); font-family:Nunito,Arial,sans-serif; background:var(--bg); min-height:100vh; }
+        header { color:#fff; padding:3.2vh 5vw; background:linear-gradient(120deg,var(--green),var(--green2)); display:flex; justify-content:space-between; align-items:center; }
+        h1 { margin:0; font-size:clamp(28px,4vw,58px); letter-spacing:-1px; } .subtitle { margin-top:6px; opacity:.8; font-size:clamp(14px,1.6vw,24px); } .clock { text-align:right; font-size:clamp(18px,2.5vw,38px); font-weight:800; }
+        main { padding:3.5vh 5vw; } .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5vw; margin-bottom:3vh; }
+        .metric { background:#fff; border-radius:18px; padding:2vh 1.8vw; box-shadow:0 4px 14px rgba(18,57,39,.08); border-left:8px solid var(--green2); }
+        .metric.warning { border-color:var(--accent); } .label { color:#60796c; font-size:clamp(13px,1.4vw,21px); font-weight:700; text-transform:uppercase; letter-spacing:.5px; } .value { margin-top:6px; color:var(--green); font-size:clamp(28px,4vw,58px); font-weight:800; line-height:1; }
+        .panel { background:#fff; border-radius:20px; padding:2.5vh 2vw; box-shadow:0 4px 14px rgba(18,57,39,.08); } h2 { margin:0 0 1.8vh; color:var(--green); font-size:clamp(22px,2.6vw,38px); } table { width:100%; border-collapse:collapse; } th { text-align:left; color:#60796c; font-size:clamp(12px,1.2vw,18px); padding:1vh .7vw; text-transform:uppercase; } td { padding:1.6vh .7vw; border-top:1px solid #dbe8e1; font-size:clamp(16px,1.8vw,28px); } .time { color:var(--green); font-weight:800; white-space:nowrap; } .empty { text-align:center; color:#60796c; padding:7vh; font-size:clamp(18px,2vw,30px); }
+        footer { padding:2vh 5vw; color:#60796c; font-size:clamp(12px,1.2vw,18px); } @media(max-width:700px) { .metrics { grid-template-columns:repeat(2,1fr); } }
+    </style>
+</head>
+<body>
+<header><div><h1>🐾 VetCare</h1><div class="subtitle">Panel operativo de recepción</div></div><div class="clock">{{ ahora|date:"H:i" }}<div class="subtitle">{{ ahora|date:"l, d \d\e F" }}</div></div></header>
+<main>
+    <section class="metrics"><div class="metric"><div class="label">Citas de hoy</div><div class="value">{{ citas_hoy }}</div></div><div class="metric"><div class="label">Atendidas</div><div class="value">{{ atendidas }}</div></div><div class="metric"><div class="label">Ingresos hoy</div><div class="value">Q{{ ventas_hoy|floatformat:2 }}</div></div><div class="metric warning"><div class="label">Stock por revisar</div><div class="value">{{ stock_bajo }}</div></div></section>
+    <section class="panel"><h2>Próximas citas</h2>{% if proximas %}<table><thead><tr><th>Hora</th><th>Paciente</th><th>Propietario</th><th>Servicio</th><th>Veterinario</th></tr></thead><tbody>{% for cita in proximas %}<tr><td class="time">{{ cita.fecha_hora|date:"H:i" }}</td><td><strong>{{ cita.paciente.nombre }}</strong></td><td>{{ cita.paciente.propietario }}</td><td>{{ cita.get_tipo_display }}</td><td>{{ cita.veterinario|default:"Por asignar" }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="empty">No hay más citas programadas para hoy.</div>{% endif %}</section>
+</main>
+<footer>Actualización automática cada 5 minutos · Mantenga esta vista abierta en pantalla completa (F11).</footer>
+</body>
+</html>

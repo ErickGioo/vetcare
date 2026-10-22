@@ -1,0 +1,16 @@
+{% extends 'base/base.html' %}
+{% block title %}Reporte de ventas{% endblock %}
+{% block page_title %}Reporte de ventas e ingresos{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><p class="text-muted mb-0">Solo se consideran ventas con estado pagada.</p><a class="btn btn-outline-primary" href="{% url 'informes:resumen' %}"><i class="fas fa-arrow-left me-1"></i>Informes</a></div>
+{% include 'informes/_filtro_fechas.html' %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted fw-bold text-uppercase">Ingresos netos</small><h3 class="mt-2 mb-0">Q{{ totals.ingresos|floatformat:2 }}</h3></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted fw-bold text-uppercase">Costo de ventas</small><h3 class="mt-2 mb-0">Q{{ totals.costos|floatformat:2 }}</h3></div></div></div>
+    <div class="col-md-3"><div class="card border-success"><div class="card-body"><small class="text-success fw-bold text-uppercase">Ganancia bruta</small><h3 class="mt-2 mb-0 text-success">Q{{ totals.ganancia|floatformat:2 }}</h3></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted fw-bold text-uppercase">Unidades vendidas</small><h3 class="mt-2 mb-0">{{ totals.unidades }}</h3></div></div></div>
+</div>
+<div class="card mb-4"><div class="card-header"><i class="fas fa-box-open me-2 text-success"></i>Resultado por producto</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Código</th><th>Producto</th><th class="text-end">Unidades</th><th class="text-end">Ingresos</th><th class="text-end">Costo</th><th class="text-end">Ganancia bruta</th></tr></thead><tbody>{% for producto in productos %}<tr><td>{{ producto.producto__codigo }}</td><td><strong>{{ producto.producto__nombre }}</strong></td><td class="text-end">{{ producto.unidades }}</td><td class="text-end">Q{{ producto.ingresos|floatformat:2 }}</td><td class="text-end">Q{{ producto.costos|floatformat:2 }}</td><td class="text-end text-success fw-bold">Q{{ producto.ganancia|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-4">No hay ventas pagadas para el período seleccionado.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-header"><i class="fas fa-receipt me-2 text-success"></i>Ventas cobradas</div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Pago</th><th class="text-end">Total</th></tr></thead><tbody>{% for venta in ventas_pagadas %}<tr><td><a href="{% url 'ventas:detalle' venta.pk %}">#{{ venta.numero }}</a></td><td>{{ venta.fecha|date:"d/m/Y H:i" }}</td><td>{{ venta.cliente }}</td><td>{{ venta.get_tipo_pago_display }}</td><td class="text-end fw-bold">Q{{ venta.total|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No hay ventas pagadas.</td></tr>{% endfor %}</tbody></table></div></div>
+<p class="text-muted small mt-3">La ganancia bruta descuenta el costo registrado al momento de vender cada producto; no contempla gastos operativos, impuestos ni salarios.</p>
+{% endblock %}

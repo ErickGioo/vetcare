@@ -224,6 +224,13 @@
         <a href="/ventas/historial/" {% if '/historial/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-history"></i> Historial
         </a>
+        <div class="nav-section">Reportes</div>
+        <a href="/informes/consultas/"><i class="fas fa-file-medical"></i> Informes para dueños</a>
+        {% if user.is_staff %}
+        <a href="/informes/"><i class="fas fa-chart-pie"></i> Informes y ganancias</a>
+        <a href="/informes/cierres/"><i class="fas fa-cash-register"></i> Cierres</a>
+        <a href="/informes/inventario/"><i class="fas fa-box"></i> Inventario y mínimos</a>
+        {% endif %}
         <div class="nav-section">Sistema</div>
         <a href="/admin/">
             <i class="fas fa-cog"></i> Administración

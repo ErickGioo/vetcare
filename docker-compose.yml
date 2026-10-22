@@ -1,5 +1,6 @@
 services:
   db:
+    restart: unless-stopped
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-vetcare_db}
@@ -14,13 +15,14 @@ services:
       retries: 10
 
   web:
+    restart: unless-stopped
     build: .
     env_file: .env
     environment:
       DB_HOST: db
       DB_PORT: 5432
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
