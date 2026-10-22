@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from .models import Especie, HistorialMedico, Paciente, Raza
 from productos.models import Producto
@@ -71,7 +73,14 @@ class ServicioConsultaForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['servicio'].queryset = Producto.objects.filter(activo=True, tipo='servicio', precio_venta__gt=0, descuento__gte=0, descuento__lt=100).order_by('nombre')
+        self.fields['servicio'].empty_label = 'Selecciona el servicio de esta atención'
         self.fields['servicio'].label_from_instance = lambda p: f'{p.nombre} · Q{p.precio_final:.2f}'
+
+
+class ServicioRapidoForm(forms.Form):
+    nombre = forms.CharField(max_length=200, strip=True)
+    precio = forms.DecimalField(min_value=Decimal('0.01'), max_value=Decimal('99999999.99'), max_digits=10, decimal_places=2)
+    costo = forms.DecimalField(required=False, min_value=Decimal('0'), max_value=Decimal('99999999.99'), max_digits=10, decimal_places=2)
 
 
 class HistorialMedicoForm(RevisionValidation, forms.ModelForm):

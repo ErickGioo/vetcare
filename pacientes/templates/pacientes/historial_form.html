@@ -5,7 +5,7 @@
 <form method="post">{% csrf_token %}
 {% if form.errors %}<div class="alert alert-danger">Revisa los campos indicados: {{ form.errors }}</div>{% endif %}
 
-<div class="card card-body mb-4"><h5>Servicio y comprobante de atención</h5>{{ billing.as_p }}<p class="small text-muted">Si no aparece una tarifa, registra primero un producto de tipo Servicio con su precio. <a href="{% url 'productos:crear' %}">Configurar servicio</a></p></div>
+{% include 'pacientes/_servicio_consulta.html' %}
   <!-- Datos clínicos -->
   <div class="card mb-4">
     <div class="card-header fw-bold"><i class="fas fa-stethoscope me-2 text-success"></i>Datos de la Consulta</div>

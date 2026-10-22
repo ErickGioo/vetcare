@@ -106,3 +106,30 @@ class ClinicIntegrationTests(TestCase):
         self.assertEqual(Venta.objects.count(),1)
         with self.assertRaises(ValidationError):
             cambiar_cantidad(sale.pk,self.history.detalle_servicio_id,0,self.user)
+
+    def test_quick_service_creation_and_selection(self):
+        response=self.client.post('/pacientes/servicios/nuevo/', {'nombre':'Revisión nueva','precio':'125.50','costo':'20'})
+        self.assertEqual(response.status_code,200)
+        product=Producto.objects.get(pk=response.json()['id'])
+        self.assertEqual(product.tipo,'servicio')
+        self.assertEqual(product.stock,0)
+        self.assertEqual(product.precio_venta,Decimal('125.50'))
+        again=self.client.post('/pacientes/servicios/nuevo/', {'nombre':'Revisión nueva','precio':'125.50','costo':'20'})
+        self.assertEqual(response.json()['id'],again.json()['id'])
+        self.assertFalse(MovimientoInventario.objects.exists())
+
+    def test_quick_service_validation_and_permissions(self):
+        for price in ('0','-1','abc','12.345'):
+            self.assertEqual(self.client.post('/pacientes/servicios/nuevo/',{'nombre':'Inválido','precio':price}).status_code,400)
+        self.assertFalse(Producto.objects.filter(nombre='Inválido').exists())
+        self.client.force_login(User.objects.create_user('normal'))
+        self.assertEqual(self.client.post('/pacientes/servicios/nuevo/',{'nombre':'No permitido','precio':'10'}).status_code,403)
+
+    def test_quick_service_requires_csrf_and_preserves_invalid_consultation(self):
+        from django.test import Client
+        client=Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        self.assertEqual(client.post('/pacientes/servicios/nuevo/',{'nombre':'Sin CSRF','precio':'10'}).status_code,403)
+        response=self.client.post(f'/pacientes/{self.pet.pk}/historial/nuevo/',{'motivo':'Conservar este motivo','estado':'abierta','servicio':self.service.pk})
+        self.assertContains(response,'Conservar este motivo')
+        self.assertContains(response,'Guardar servicio y seleccionarlo')

@@ -154,7 +154,7 @@ vetcare/
 
 - **Pantalla TV:** `/citas/tv/` muestra las citas de hoy y sus estados; se actualiza cada 20 segundos. Requiere sesión.
 - **Especies y razas:** `/pacientes/catalogos/` permite al administrador ampliar los catálogos. En el registro del paciente, las razas se filtran por especie y primeras letras, con validación también en el servidor.
-- **Consultas:** selecciona un producto activo de tipo Servicio con su tarifa. Al guardar la atención se genera una venta pendiente vinculada; el ingreso solo se refleja al confirmar el pago. Las consultas anteriores pueden facturarse desde su detalle, sin generar automáticamente cargos retroactivos.
+- **Consultas:** selecciona un servicio con su tarifa. Los administradores también pueden crear y seleccionar un servicio desde la misma consulta, indicando nombre, precio y costo directo opcional, sin salir ni perder los datos escritos. Al guardar la atención se genera una venta pendiente vinculada; el ingreso solo se refleja al confirmar el pago. Las consultas anteriores pueden facturarse desde su detalle, sin generar automáticamente cargos retroactivos.
 - **Grooming:** la agenda ofrece Grooming / peluquería, Baño y Corte de uñas. Se puede asignar un profesional responsable o dejarlo pendiente. Las tarifas se configuran como productos de tipo Servicio y se cobran desde Ventas.
 - **Revisiones:** al indicar fecha y hora en la consulta o postconsulta, se crea una cita de control pendiente. Las actualizaciones reutilizan la cita vinculada.
 - **Corrección de ventas:** en una venta pendiente se puede cambiar la cantidad o quitar artículos. Se ajustan existencias y se registra el movimiento. Las ventas pagadas o con un pago de tarjeta en proceso están protegidas; no hay un flujo de devolución implementado.

@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import Especie, Paciente, HistorialMedico, Raza
 from .forms import EspecieForm, PacienteForm, HistorialMedicoForm, PostConsultaForm, RazaForm
-from .forms import ServicioConsultaForm
+from .forms import ServicioConsultaForm, ServicioRapidoForm
 from .integracion import facturar_consulta, sincronizar_revision
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -139,6 +139,29 @@ def razas(request):
         return JsonResponse({'razas': []})
     breeds = Raza.objects.filter(especie_id=species, nombre__istartswith=request.GET.get('q', '').strip()[:100]).order_by('nombre')[:100]
     return JsonResponse({'razas': list(breeds.values('id', 'nombre'))})
+
+
+@login_required
+@require_POST
+def crear_servicio(request):
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Solo un administrador puede crear tarifas.'}, status=403)
+    form = ServicioRapidoForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({'error': 'Revisa el nombre y los importes.', 'errores': form.errors}, status=400)
+    from productos.models import Producto
+    from uuid import uuid4
+    from decimal import Decimal
+    name, price = form.cleaned_data['nombre'], form.cleaned_data['precio']
+    cost = form.cleaned_data['costo'] or Decimal('0')
+    product = Producto.objects.filter(tipo='servicio', activo=True, nombre__iexact=name).first()
+    if product and (product.precio_venta != price or product.precio_compra != cost or product.descuento != 0):
+        return JsonResponse({'error': 'Ya existe un servicio con ese nombre y otra tarifa. Selecciónalo o modifica su precio en Productos.'}, status=400)
+    if not product:
+        product = Producto.objects.create(codigo='SERV-'+uuid4().hex[:12], nombre=name, tipo='servicio',
+            precio_venta=price, precio_compra=cost, stock=0, stock_minimo=0, activo=True)
+    return JsonResponse({'id':product.pk, 'nombre':product.nombre, 'precio':str(product.precio_final),
+        'etiqueta': f'{product.nombre} · Q{product.precio_final:.2f}'})
 
 
 @login_required
