@@ -13,7 +13,10 @@ from .models import Cita
 @override_settings(SECURE_SSL_REDIRECT=False, ALLOWED_HOSTS=['testserver'])
 class TelevisionTests(TestCase):
     def setUp(self):
-        self.client.force_login(User.objects.create_user(username='tv'))
+        from django.contrib.auth.models import Permission
+        viewer = User.objects.create_user(username='tv')
+        viewer.user_permissions.add(Permission.objects.get(codename='view_cita'))
+        self.client.force_login(viewer)
         owner = Cliente.objects.create(nombre='Private owner', apellido='Hidden')
         self.pet = Paciente.objects.create(nombre='Luna', propietario=owner, sexo='H')
         self.now = timezone.make_aware(datetime(2026, 10, 21, 12))

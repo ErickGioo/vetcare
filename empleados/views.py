@@ -48,5 +48,5 @@ def editar(request, pk):
 @login_required
 def detalle(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
-    citas = empleado.citas.all()[:10]
+    citas = empleado.citas.all()[:10] if request.user.has_perm('citas.view_cita') else []
     return render(request, 'empleados/detalle.html', {'empleado': empleado, 'citas': citas})

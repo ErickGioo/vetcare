@@ -20,6 +20,8 @@ from .integracion import facturar_consulta, sincronizar_revision
 class ClinicIntegrationTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('vet', is_staff=True)
+        from django.contrib.auth.models import Permission
+        self.user.user_permissions.set(Permission.objects.all())
         self.client.force_login(self.user)
         self.owner = Cliente.objects.create(nombre='Ana', apellido='Test')
         self.dog = Especie.objects.create(nombre='Perro')

@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, F
 from .models import Producto, Categoria, MovimientoInventario
 from .forms import ProductoForm, CategoriaForm, AjusteInventarioForm
 
@@ -9,16 +9,13 @@ from .forms import ProductoForm, CategoriaForm, AjusteInventarioForm
 def lista_productos(request):
     query = request.GET.get('q', '')
     categoria_id = request.GET.get('categoria', '')
-    tipo = request.GET.get('tipo', '')
     productos = Producto.objects.select_related('categoria', 'proveedor').all()
     if query:
         productos = productos.filter(Q(nombre__icontains=query) | Q(codigo__icontains=query))
     if categoria_id:
         productos = productos.filter(categoria_id=categoria_id)
-    if tipo:
-        productos = productos.filter(tipo=tipo)
     categorias = Categoria.objects.filter(activa=True)
-    stock_bajo = Producto.objects.filter(activo=True).filter(stock__lte=5)
+    stock_bajo = Producto.objects.filter(activo=True).exclude(tipo='servicio').filter(stock__lte=F('stock_minimo'))
     return render(request, 'productos/lista.html', {
         'productos': productos,
         'categorias': categorias,
@@ -77,6 +74,9 @@ def detalle_producto(request, pk):
 @login_required
 def ajustar_inventario(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
+    if producto.tipo == 'servicio':
+        messages.error(request, 'Los servicios no manejan inventario.')
+        return redirect('productos:detalle', pk=pk)
     if request.method == 'POST':
         form = AjusteInventarioForm(request.POST)
         if form.is_valid():

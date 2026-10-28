@@ -5,6 +5,7 @@ class Categoria(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField(blank=True)
     activa = models.BooleanField(default=True)
+    es_servicio = models.BooleanField(default=False, verbose_name="Servicios sin inventario")
 
     class Meta:
         verbose_name = 'Categoría'

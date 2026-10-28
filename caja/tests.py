@@ -164,6 +164,8 @@ class CajaTests(TestCase):
         caja=abrir(self.user,Decimal('0'))
         cerrar(caja.pk,self.user,{'efectivo':0,'transferencia':0,'tarjeta':0},'')
         staff=User.objects.create_user('caja_staff',is_staff=True)
+        from django.contrib.auth.models import Permission
+        staff.user_permissions.add(*Permission.objects.filter(codename__in=['view_cajadiaria','add_reaperturacaja','change_reaperturacaja']))
         self.client.force_login(staff)
         self.assertEqual(self.client.post('/caja/',{'accion':'solicitar_reapertura','motivo':'Corregir conteo'}).status_code,302)
         solicitud=caja.reaperturas.get()

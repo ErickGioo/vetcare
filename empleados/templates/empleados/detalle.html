@@ -10,7 +10,7 @@
 <h5 class="fw-bold">{{ empleado.nombre_completo }}</h5>
 <span class="badge bg-primary">{{ empleado.get_rol_display }}</span>
 {% if empleado.numero_colegiado %}<div class="text-muted small mt-2">No. Colegiado: {{ empleado.numero_colegiado }}</div>{% endif %}
-<div class="mt-3"><a href="{% url 'empleados:editar' empleado.pk %}" class="btn btn-outline-primary btn-sm w-100">Editar</a></div>
+<div class="mt-3">{% if perms.empleados.change_empleado %}<a href="{% url 'empleados:editar' empleado.pk %}" class="btn btn-outline-primary btn-sm w-100">Editar</a>{% endif %}</div>
 </div></div>
 </div>
 <div class="col-md-9">

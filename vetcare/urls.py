@@ -18,15 +18,19 @@ def dashboard(request):
     from ventas.models import Venta
     from django.db.models import Sum, F
 
-    hoy = timezone.now().date()
-    total_pacientes = Paciente.objects.filter(estado='activo').count()
-    citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).count()
-    ventas_hoy = Venta.objects.filter(fecha__date=hoy, estado='pagada').aggregate(t=Sum('total'))['t'] or 0
+    hoy = timezone.localdate()
+    total_pacientes = Paciente.objects.filter(estado='activo').count() if request.user.has_perm('pacientes.view_paciente') else 0
+    citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).count() if request.user.has_perm('citas.view_cita') else 0
+    ventas_hoy = (Venta.objects.filter(fecha__date=hoy, estado='pagada').aggregate(t=Sum('total'))['t'] or 0) if request.user.has_perm('ventas.view_venta') else 0
     productos_stock_bajo = Producto.objects.filter(activo=True, stock__lte=F('stock_minimo')).exclude(tipo='servicio')[:5]
     proximas_citas = Cita.objects.filter(
         fecha_hora__gte=timezone.now(), estado__in=['pendiente','confirmada']
     ).select_related('paciente','veterinario').order_by('fecha_hora')[:5]
 
+    if not request.user.has_perm('productos.view_producto'):
+        productos_stock_bajo = Producto.objects.none()
+    if not request.user.has_perm('citas.view_cita'):
+        proximas_citas = Cita.objects.none()
     return render(request, 'base/dashboard.html', {
         'total_pacientes': total_pacientes,
         'citas_hoy': citas_hoy,

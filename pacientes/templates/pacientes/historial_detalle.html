@@ -12,9 +12,9 @@
   <div class="d-flex gap-2">
 <a href="{% url 'informes:propietario' historial.pk %}" class="btn btn-outline-primary" target="_blank" rel="noopener">Informe para el dueño</a>
     {% if not historial.consulta_cerrada %}
-    <a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="btn btn-primary">
+    {% if perms.pacientes.change_historialmedico %}<a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="btn btn-primary">
       <i class="fas fa-pen me-1"></i>Agregar descripción post-consulta
-    </a>
+    </a>{% endif %}
     {% endif %}
     <span class="badge fs-6
       {% if historial.estado == 'cerrada' %}bg-success
@@ -141,7 +141,7 @@
     <div class="alert alert-warning">
       <i class="fas fa-exclamation-circle me-2"></i>
       Esta consulta no tiene descripción post-consulta.
-      <a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="alert-link">Agregar ahora</a>
+      {% if perms.pacientes.change_historialmedico %}<a href="{% url 'pacientes:post_consulta' paciente.pk historial.pk %}" class="alert-link">Agregar ahora</a>{% endif %}
     </div>
     {% endif %}
     {% endif %}

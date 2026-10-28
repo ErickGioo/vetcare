@@ -189,3 +189,11 @@ Los pagos históricos anteriores a este módulo no se reconstruyen con fechas su
 ### Reapertura autorizada de caja
 
 En la caja cerrada se solicita reapertura indicando motivo. Solo una cuenta activa de superusuario o de empleado activo con rol Administrador (y acceso staff) puede aprobar o rechazar, mediante POST con CSRF. No se solicitan contraseñas de otro usuario en la caja. Se conserva el cuadre anterior (esperado, contado, observaciones, responsable, fecha y cobros incluidos), quién pidió y quién autorizó, con sus horas. Una solicitud por cierre pendiente; no se aprueba dos veces ni si hay otra caja abierta. Al aprobar se incorporan los cobros sin caja de esa misma fecha y se permite un nuevo cierre, conservando el anterior en el historial de autorizaciones.
+
+### Categorías, códigos y permisos
+
+Productos muestra una sola clasificación: Categoría. Cada categoría configura si corresponde a servicios sin inventario; la migración asigna categorías a registros antiguos y separa categorías que mezclaban servicios y artículos, conservando los códigos y las ventas. La distinción técnica de servicio se mantiene internamente para no descontar stock al facturar una atención. Las categorías con productos no pueden cambiar su manejo de inventario, ni convertir productos existentes entre físico y servicio.
+
+Código es opcional: se genera un identificador único al dejarlo vacío; se admite un código manual o de barras existente. No se renumeran los productos guardados. El ID interno sigue siendo automático.
+
+`PermisosModulosMiddleware` aplica en las pantallas los permisos estándar de Django (ver, añadir, cambiar y eliminar), incluyendo solicitudes directas por URL y POST, además de permisos de usuario y grupos. Ser staff no concede acceso total; solo el superusuario lo tiene. Caja e informes conservan además sus restricciones de administrador; Registro de accesos sigue exclusivo del superusuario. Registrar una consulta facturada requiere añadir historial y venta; agendar una revisión requiere permisos de citas. Los datos asociados de otros módulos se omiten cuando falta su permiso de consulta. Los permisos efectivos se gestionan en Administración → Usuarios/Grupos, sin asignar automáticamente acceso extra a cuentas existentes.

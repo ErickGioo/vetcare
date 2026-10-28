@@ -197,42 +197,42 @@
             <i class="fas fa-tachometer-alt"></i> Dashboard
         </a>
         <div class="nav-section">Clínica</div>
-        <a href="/pacientes/" {% if '/pacientes/' in request.path %}class="active"{% endif %}>
+        {% if perms.pacientes.view_paciente %}<a href="/pacientes/" {% if '/pacientes/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-paw"></i> Pacientes
-        </a>
+        </a>{% endif %}
         {% if user.is_staff %}
-        <a href="{% url 'caja:panel' %}" {% if request.path == '/caja/' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Caja diaria</a>
+        {% if perms.caja.view_cajadiaria %}<a href="{% url 'caja:panel' %}" {% if request.path == '/caja/' %}class="active"{% endif %}><i class="fas fa-cash-register"></i> Caja diaria</a>{% endif %}
         {% endif %}
-        <a href="/citas/" {% if '/citas/' in request.path %}class="active"{% endif %}>
+        {% if perms.citas.view_cita %}<a href="/citas/" {% if '/citas/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-calendar-alt"></i> Citas
-        </a>
+        </a>{% endif %}
         <div class="nav-section">Personas</div>
-        <a href="/clientes/" {% if '/clientes/' in request.path %}class="active"{% endif %}>
+        {% if perms.clientes.view_cliente %}<a href="/clientes/" {% if '/clientes/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-users"></i> Clientes / Dueños
-        </a>
-        <a href="/empleados/" {% if '/empleados/' in request.path %}class="active"{% endif %}>
+        </a>{% endif %}
+        {% if perms.empleados.view_empleado %}<a href="/empleados/" {% if '/empleados/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-user-md"></i> Empleados / Vets
-        </a>
+        </a>{% endif %}
         <div class="nav-section">Inventario</div>
-        <a href="/productos/" {% if '/productos/' in request.path %}class="active"{% endif %}>
+        {% if perms.productos.view_producto %}<a href="/productos/" {% if '/productos/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-pills"></i> Productos
-        </a>
-        <a href="/proveedores/" {% if '/proveedores/' in request.path %}class="active"{% endif %}>
+        </a>{% endif %}
+        {% if perms.proveedores.view_proveedor %}<a href="/proveedores/" {% if '/proveedores/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-truck"></i> Proveedores
-        </a>
+        </a>{% endif %}
         <div class="nav-section">Facturación</div>
-        <a href="/ventas/" {% if request.path == '/ventas/' %}class="active"{% endif %}>
+        {% if perms.ventas.view_venta %}<a href="/ventas/" {% if request.path == '/ventas/' %}class="active"{% endif %}>
             <i class="fas fa-receipt"></i> Ventas
-        </a>
-        <a href="/ventas/historial/" {% if '/historial/' in request.path %}class="active"{% endif %}>
+        </a>{% endif %}
+        {% if perms.ventas.view_venta %}<a href="/ventas/historial/" {% if '/historial/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-history"></i> Historial
-        </a>
+        </a>{% endif %}
         <div class="nav-section">Reportes</div>
-        <a href="/informes/consultas/"><i class="fas fa-file-medical"></i> Informes para dueños</a>
+        {% if perms.pacientes.view_historialmedico %}<a href="/informes/consultas/"><i class="fas fa-file-medical"></i> Informes para dueños</a>{% endif %}
         {% if user.is_staff %}
-        <a href="/informes/"><i class="fas fa-chart-pie"></i> Informes y ganancias</a>
-        <a href="/informes/cierres/"><i class="fas fa-cash-register"></i> Cierres</a>
-        <a href="/informes/inventario/"><i class="fas fa-box"></i> Inventario y mínimos</a>
+        {% if perms.ventas.view_venta %}<a href="/informes/"><i class="fas fa-chart-pie"></i> Informes y ganancias</a>{% endif %}
+        {% if perms.ventas.view_venta %}<a href="/informes/cierres/"><i class="fas fa-cash-register"></i> Cierres</a>{% endif %}
+        {% if perms.productos.view_producto %}<a href="/informes/inventario/"><i class="fas fa-box"></i> Inventario y mínimos</a>{% endif %}
         {% endif %}
         <div class="nav-section">Sistema</div>
         <a href="/admin/">

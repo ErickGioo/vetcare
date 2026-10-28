@@ -9,7 +9,7 @@
 {% endfor %}
 <a href="?" class="btn btn-sm btn-outline-secondary">Todas</a>
 </div>
-<div class="d-flex gap-2"><a href="{% url 'citas:television' %}" class="btn btn-outline-primary" target="_blank" rel="noopener">Pantalla TV</a><a href="{% url 'citas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Cita</a></div>
+<div class="d-flex gap-2"><a href="{% url 'citas:television' %}" class="btn btn-outline-primary" target="_blank" rel="noopener">Pantalla TV</a>{% if perms.citas.add_cita %}<a href="{% url 'citas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Cita</a>{% endif %}</div>
 </div>
 <div class="card">
 <table class="table table-hover mb-0">
@@ -29,7 +29,7 @@
 {% else %}<span class="badge bg-warning text-dark">{{ c.get_estado_display }}</span>{% endif %}
 </td>
 <td>
-<a href="{% url 'citas:editar' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+{% if perms.citas.change_cita %}<a href="{% url 'citas:editar' c.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>{% endif %}
 <a href="{% url 'citas:cambiar_estado' c.pk 'completada' %}" class="btn btn-sm btn-outline-success" title="Completar"><i class="fas fa-check"></i></a>
 <a href="{% url 'citas:cambiar_estado' c.pk 'cancelada' %}" class="btn btn-sm btn-outline-danger" title="Cancelar"><i class="fas fa-times"></i></a>
 </td>

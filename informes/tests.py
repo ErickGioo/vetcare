@@ -15,6 +15,8 @@ from ventas.models import Venta, DetalleVenta
 class ReportTests(TestCase):
     def setUp(self):
         self.staff = User.objects.create_user('admin', is_staff=True)
+        from django.contrib.auth.models import Permission
+        self.staff.user_permissions.set(Permission.objects.all())
         self.client.force_login(self.staff)
         self.owner = Cliente.objects.create(nombre='Ana', apellido='Lopez')
         self.pet = Paciente.objects.create(nombre='Luna', propietario=self.owner, sexo='H')

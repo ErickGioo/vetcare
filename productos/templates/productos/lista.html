@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex gap-2">
-        <a href="{% url 'productos:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Producto</a>
+        {% if perms.productos.add_producto %}<a href="{% url 'productos:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Producto</a>{% endif %}
         <a href="{% url 'productos:categorias' %}" class="btn btn-outline-secondary"><i class="fas fa-tags me-1"></i>Categorías</a>
     </div>
     {% if stock_bajo_count > 0 %}
@@ -24,12 +24,6 @@
                     {% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.nombre }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <select name="tipo" class="form-select">
-                    <option value="">Todos los tipos</option>
-                    {% for val, label in tipos %}<option value="{{ val }}" {% if request.GET.tipo == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                </select>
-            </div>
             <div class="col-md-1">
                 <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
             </div>
@@ -42,7 +36,7 @@
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>Código</th><th>Nombre</th><th>Tipo</th><th>Categoría</th>
+                    <th>Código</th><th>Nombre</th><th>Categoría</th>
                     <th>P. Venta</th><th>Stock</th><th>Estado</th><th>Acciones</th>
                 </tr>
             </thead>
@@ -54,7 +48,6 @@
                     <strong>{{ p.nombre }}</strong>
                     {% if p.requiere_receta %}<span class="badge bg-info ms-1">Receta</span>{% endif %}
                 </td>
-                <td>{{ p.get_tipo_display }}</td>
                 <td>{{ p.categoria|default:'-' }}</td>
                 <td>
                     Q{{ p.precio_venta }}
@@ -72,8 +65,8 @@
                 </td>
                 <td>
                     <a href="{% url 'productos:detalle' p.pk %}" class="btn btn-sm btn-outline-secondary" title="Ver"><i class="fas fa-eye"></i></a>
-                    <a href="{% url 'productos:editar' p.pk %}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>
-                    <a href="{% url 'productos:ajustar_inventario' p.pk %}" class="btn btn-sm btn-outline-success" title="Inventario"><i class="fas fa-boxes"></i></a>
+                    {% if perms.productos.change_producto %}<a href="{% url 'productos:editar' p.pk %}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="fas fa-edit"></i></a>{% endif %}
+                    {% if perms.productos.change_producto %}<a href="{% url 'productos:ajustar_inventario' p.pk %}" class="btn btn-sm btn-outline-success" title="Inventario"><i class="fas fa-boxes"></i></a>{% endif %}
                 </td>
             </tr>
             {% empty %}

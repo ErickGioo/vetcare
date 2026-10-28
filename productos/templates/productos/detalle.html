@@ -42,7 +42,7 @@
     <div class="card mt-3">
         <div class="card-header d-flex justify-content-between">
             Stock
-            <a href="{% url 'productos:ajustar_inventario' producto.pk %}" class="btn btn-sm btn-primary">Ajustar</a>
+            {% if perms.productos.change_producto %}<a href="{% url 'productos:ajustar_inventario' producto.pk %}" class="btn btn-sm btn-primary">Ajustar</a>{% endif %}
         </div>
         <div class="card-body text-center">
             <div style="font-size:36px;font-weight:800;color:{% if producto.stock_bajo %}#dc3545{% else %}#1a6b4a{% endif %}">
@@ -57,11 +57,10 @@
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between">
             Información
-            <a href="{% url 'productos:editar' producto.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit me-1"></i>Editar</a>
+            {% if perms.productos.change_producto %}<a href="{% url 'productos:editar' producto.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit me-1"></i>Editar</a>{% endif %}
         </div>
         <div class="card-body">
             <div class="row g-2">
-                <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">TIPO</span>{{ producto.get_tipo_display }}</div>
                 <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">CATEGORÍA</span>{{ producto.categoria|default:'-' }}</div>
                 <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">PROVEEDOR</span>{{ producto.proveedor|default:'-' }}</div>
                 <div class="col-6"><span class="text-muted d-block" style="font-size:12px;">UNIDAD</span>{{ producto.unidad_medida }}</div>

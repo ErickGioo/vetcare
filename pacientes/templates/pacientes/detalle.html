@@ -34,12 +34,12 @@
     </div>
 
     <div class="d-grid gap-2">
-      <a href="{% url 'pacientes:agregar_historial' paciente.pk %}" class="btn btn-primary btn-sm">
+      {% if perms.pacientes.add_historialmedico %}<a href="{% url 'pacientes:agregar_historial' paciente.pk %}" class="btn btn-primary btn-sm">
         <i class="fas fa-notes-medical me-1"></i>Nueva Consulta
-      </a>
-      <a href="{% url 'pacientes:editar' paciente.pk %}" class="btn btn-outline-primary btn-sm">
+      </a>{% endif %}
+      {% if perms.pacientes.change_paciente %}<a href="{% url 'pacientes:editar' paciente.pk %}" class="btn btn-outline-primary btn-sm">
         <i class="fas fa-edit me-1"></i>Editar ficha
-      </a>
+      </a>{% endif %}
     </div>
   </div>
 
@@ -89,9 +89,9 @@
             <i class="fas fa-eye me-1"></i>Ver consulta
           </a>
           {% if not h.consulta_cerrada %}
-          <a href="{% url 'pacientes:post_consulta' paciente.pk h.pk %}" class="btn btn-sm btn-outline-success">
+          {% if perms.pacientes.change_historialmedico %}<a href="{% url 'pacientes:post_consulta' paciente.pk h.pk %}" class="btn btn-sm btn-outline-success">
             <i class="fas fa-pen me-1"></i>Post-consulta
-          </a>
+          </a>{% endif %}
           {% endif %}
         </div>
       </div>

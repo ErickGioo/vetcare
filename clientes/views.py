@@ -38,8 +38,8 @@ def editar(request, pk):
 @login_required
 def detalle(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
-    mascotas = cliente.mascotas.all()
-    ventas = cliente.ventas.all()[:10]
+    mascotas = cliente.mascotas.all() if request.user.has_perm('pacientes.view_paciente') else []
+    ventas = cliente.ventas.all()[:10] if request.user.has_perm('ventas.view_venta') else []
     return render(request, 'clientes/detalle.html', {'cliente': cliente, 'mascotas': mascotas, 'ventas': ventas})
 
 @login_required

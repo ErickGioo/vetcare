@@ -15,6 +15,8 @@ from .operaciones import agregar_articulo, cambiar_cantidad
 class SaleCorrectionTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('staff')
+        from django.contrib.auth.models import Permission
+        self.user.user_permissions.set(Permission.objects.all())
         self.client.force_login(self.user)
         self.owner = Cliente.objects.create(nombre='Ana', apellido='Test')
         self.product = Producto.objects.create(codigo='P', nombre='Producto', precio_compra=5, precio_venta=20, descuento=10, stock=10)

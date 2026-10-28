@@ -45,5 +45,5 @@ def editar(request, pk):
 @login_required
 def detalle(request, pk):
     proveedor = get_object_or_404(Proveedor, pk=pk)
-    productos = proveedor.producto_set.all()
+    productos = proveedor.producto_set.all() if request.user.has_perm('productos.view_producto') else []
     return render(request, 'proveedores/detalle.html', {'proveedor': proveedor, 'productos': productos})

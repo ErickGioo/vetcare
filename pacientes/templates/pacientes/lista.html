@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between mb-3">
     <form class="d-flex gap-2"><input type="text" name="q" value="{{ query }}" placeholder="Buscar mascota o dueño..." class="form-control" style="width:300px;"><button class="btn btn-primary"><i class="fas fa-search"></i></button></form>
-    <a href="{% url 'pacientes:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Paciente</a>
+    {% if perms.pacientes.add_paciente %}<a href="{% url 'pacientes:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Paciente</a>{% endif %}
 </div>
 <div class="row g-3">
 {% for p in pacientes %}
@@ -27,7 +27,7 @@
         </div>
         <div class="card-footer bg-transparent d-flex gap-2">
             <a href="{% url 'pacientes:detalle' p.pk %}" class="btn btn-sm btn-primary flex-fill">Ver ficha</a>
-            <a href="{% url 'pacientes:editar' p.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+            {% if perms.pacientes.change_paciente %}<a href="{% url 'pacientes:editar' p.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>{% endif %}
         </div>
     </div>
 </div>

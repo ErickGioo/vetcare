@@ -3,7 +3,7 @@
 {% block page_title %}Empleados / Veterinarios{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-end mb-3">
-    <a href="{% url 'empleados:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Empleado</a>
+    {% if perms.empleados.add_empleado %}<a href="{% url 'empleados:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Empleado</a>{% endif %}
 </div>
 <div class="row g-3">
 {% for e in empleados %}
@@ -20,7 +20,7 @@
 </div>
 <div class="card-footer bg-transparent d-flex gap-2">
 <a href="{% url 'empleados:detalle' e.pk %}" class="btn btn-sm btn-outline-secondary flex-fill">Ver</a>
-<a href="{% url 'empleados:editar' e.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
+{% if perms.empleados.change_empleado %}<a href="{% url 'empleados:editar' e.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>{% endif %}
 </div>
 </div>
 </div>
