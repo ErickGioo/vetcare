@@ -14,6 +14,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div><p class="text-muted mb-0">Resumen del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}.</p></div>
     <div class="d-flex gap-2">
+{% if user.is_superuser %}<a class="btn btn-outline-primary" href="{% url 'caja:accesos' %}"><i class="fas fa-clock me-2"></i>Registro de accesos</a>{% endif %}
 <a class="btn btn-outline-primary" href="{% url 'informes:servicios' %}">Servicios realizados</a>
 <a class="btn btn-primary" href="{% url 'informes:cierres' %}">Cierres diarios / mensuales</a>
 <a class="btn btn-outline-primary" href="{% url 'informes:consultas' %}">Informes para dueños</a>
