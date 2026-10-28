@@ -2,6 +2,11 @@
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block content %}
+{% if user.is_staff %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{% url 'caja:accesos' %}" class="btn btn-outline-primary"><i class="fas fa-clock me-2"></i>Registro de accesos</a>
+</div>
+{% endif %}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="stat-card" style="background: linear-gradient(135deg, #1a6b4a, #2d9966);">
