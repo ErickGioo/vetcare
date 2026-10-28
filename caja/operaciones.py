@@ -63,3 +63,54 @@ def cerrar(pk, usuario, contado, observaciones):
     caja.cerrada_por = usuario
     caja.save(update_fields=['esperado', 'contado', 'observaciones', 'cerrada_en', 'cerrada_por'])
     return caja
+
+
+def puede_autorizar(usuario):
+    return usuario.is_active and usuario.is_staff and (usuario.is_superuser or
+        usuario.__class__.objects.filter(pk=usuario.pk, empleado__rol='admin', empleado__activo=True).exists())
+
+
+@transaction.atomic
+def solicitar_reapertura(pk, usuario, motivo):
+    from .models import ReaperturaCaja
+    bloquear()
+    caja = CajaDiaria.objects.select_for_update().get(pk=pk)
+    if not caja.cerrada_en:
+        raise ValidationError('La caja ya está abierta.')
+    if caja.reaperturas.filter(estado='pendiente').exists():
+        raise ValidationError('Ya hay una solicitud pendiente para esta caja.')
+    return ReaperturaCaja.objects.create(caja=caja, solicitada_por=usuario, motivo=motivo,
+        cierre_referencia=caja.cerrada_en)
+
+
+@transaction.atomic
+def resolver_reapertura(pk, usuario, aprobar):
+    from django.core.exceptions import PermissionDenied
+    from .models import ReaperturaCaja
+    if not puede_autorizar(usuario):
+        raise PermissionDenied('Solo un administrador puede autorizar la reapertura.')
+    bloquear()
+    solicitud = ReaperturaCaja.objects.select_for_update().select_related('caja').get(pk=pk)
+    caja = solicitud.caja
+    if solicitud.estado != 'pendiente':
+        raise ValidationError('Esta solicitud ya fue resuelta.')
+    if aprobar:
+        if caja.cerrada_en != solicitud.cierre_referencia:
+            raise ValidationError('El cierre cambió; realiza una nueva solicitud.')
+        if CajaDiaria.objects.filter(cerrada_en__isnull=True).exists():
+            raise ValidationError('Cierra la caja abierta antes de autorizar esta reapertura.')
+        solicitud.cierre_anterior = {'cerrada_en':caja.cerrada_en.isoformat(), 'cerrada_por':caja.cerrada_por_id,
+            'esperado':caja.esperado, 'contado':caja.contado, 'observaciones':caja.observaciones,
+            'inicial':str(caja.inicial), 'cobros':list(caja.cobros.values_list('pk',flat=True))}
+        caja.cerrada_en = None
+        caja.cerrada_por = None
+        caja.esperado = {}
+        caja.contado = {}
+        caja.observaciones = ''
+        caja.save(update_fields=['cerrada_en','cerrada_por','esperado','contado','observaciones'])
+        CobroCaja.objects.filter(caja__isnull=True, fecha__date=caja.fecha).update(caja=caja)
+    solicitud.estado = 'aprobada' if aprobar else 'rechazada'
+    solicitud.resuelta_por = usuario
+    solicitud.resuelta_en = timezone.now()
+    solicitud.save(update_fields=['estado','resuelta_por','resuelta_en','cierre_anterior'])
+    return solicitud

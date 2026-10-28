@@ -42,3 +42,18 @@ class AccesoSistema(models.Model):
 
     class Meta:
         ordering = ['-fecha', '-pk']
+
+
+class ReaperturaCaja(models.Model):
+    caja = models.ForeignKey(CajaDiaria, on_delete=models.PROTECT, related_name='reaperturas')
+    solicitada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='reaperturas_solicitadas')
+    solicitada_en = models.DateTimeField(auto_now_add=True)
+    motivo = models.TextField()
+    cierre_referencia = models.DateTimeField()
+    estado = models.CharField(max_length=12, default='pendiente', choices=[('pendiente','Pendiente'),('aprobada','Aprobada'),('rechazada','Rechazada')])
+    resuelta_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name='reaperturas_resueltas')
+    resuelta_en = models.DateTimeField(null=True)
+    cierre_anterior = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ['-solicitada_en', '-pk']

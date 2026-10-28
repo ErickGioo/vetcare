@@ -16,3 +16,8 @@ class CierreForm(forms.Form):
     transferencia = importe('Transferencias verificadas en banco (Q)')
     tarjeta = importe('Total verificado en terminal / NeoNet (Q)')
     observaciones = forms.CharField(required=False, max_length=2000, widget=forms.Textarea(attrs={'class':'form-control', 'rows':3}))
+
+
+class ReaperturaForm(forms.Form):
+    motivo = forms.CharField(label='Motivo de reapertura', min_length=5, max_length=2000,
+        widget=forms.Textarea(attrs={'class':'form-control','rows':2}))

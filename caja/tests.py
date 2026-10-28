@@ -129,3 +129,49 @@ class CajaTests(TestCase):
         self.assertContains(self.client.get('/caja/accesos/'),'ventas:lista')
         self.client.force_login(User.objects.create_user('lector', is_staff=True))
         self.assertEqual(self.client.get('/caja/accesos/').status_code,403)
+
+    def test_reopening_requires_admin_and_preserves_previous_close(self):
+        from django.core.exceptions import PermissionDenied
+        from .operaciones import solicitar_reapertura, resolver_reapertura
+        caja=abrir(self.user,Decimal('50'))
+        self.pagar(self.venta())
+        cerrar(caja.pk,self.user,{'efectivo':150,'transferencia':0,'tarjeta':0},'Primer cierre')
+        staff=User.objects.create_user('cajero',is_staff=True)
+        solicitud=solicitar_reapertura(caja.pk,staff,'Corregir el conteo')
+        with self.assertRaises(ValidationError):
+            solicitar_reapertura(caja.pk,staff,'Duplicada')
+        with self.assertRaises(PermissionDenied):
+            resolver_reapertura(solicitud.pk,staff,True)
+        caja.refresh_from_db()
+        self.assertIsNotNone(caja.cerrada_en)
+        self.pagar(self.venta('transferencia'))
+        resolver_reapertura(solicitud.pk,self.user,True)
+        solicitud.refresh_from_db()
+        self.assertEqual(solicitud.cierre_anterior['observaciones'],'Primer cierre')
+        self.assertEqual(Decimal(solicitud.cierre_anterior['contado']['efectivo']),150)
+        self.assertEqual(len(solicitud.cierre_anterior['cobros']),1)
+        caja.refresh_from_db()
+        self.assertIsNone(caja.cerrada_en)
+        self.assertEqual(caja.cobros.count(),2)
+        cerrar(caja.pk,self.user,{'efectivo':150,'transferencia':100,'tarjeta':0},'Segundo cierre')
+        solicitud.refresh_from_db()
+        self.assertEqual(solicitud.cierre_anterior['observaciones'],'Primer cierre')
+        with self.assertRaises(ValidationError):
+            resolver_reapertura(solicitud.pk,self.user,True)
+
+    def test_reopening_http_permissions_reject_and_conflict(self):
+        from .operaciones import solicitar_reapertura, resolver_reapertura
+        caja=abrir(self.user,Decimal('0'))
+        cerrar(caja.pk,self.user,{'efectivo':0,'transferencia':0,'tarjeta':0},'')
+        staff=User.objects.create_user('caja_staff',is_staff=True)
+        self.client.force_login(staff)
+        self.assertEqual(self.client.post('/caja/',{'accion':'solicitar_reapertura','motivo':'Corregir conteo'}).status_code,302)
+        solicitud=caja.reaperturas.get()
+        self.assertEqual(self.client.post('/caja/',{'accion':'aprobar_reapertura','solicitud':solicitud.pk}).status_code,403)
+        resolver_reapertura(solicitud.pk,self.user,False)
+        caja.refresh_from_db()
+        self.assertIsNotNone(caja.cerrada_en)
+        nueva=solicitar_reapertura(caja.pk,staff,'Nuevo intento autorizado')
+        CajaDiaria.objects.create(fecha=timezone.localdate()-timedelta(days=1),inicial=0,abierta_por=self.user)
+        with self.assertRaises(ValidationError):
+            resolver_reapertura(nueva.pk,self.user,True)
