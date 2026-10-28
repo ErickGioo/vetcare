@@ -53,6 +53,9 @@ def panel(request):
 
 @admin_report
 def accesos(request):
+    if not request.user.is_superuser:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
     from django.core.paginator import Paginator
     from .models import AccesoSistema
     try:

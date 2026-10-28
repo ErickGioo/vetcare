@@ -3,7 +3,7 @@
 {% block page_title %}Caja diaria{% endblock %}
 {% block content %}
 <style>@media print {#sidebar,.sidebar,.no-print,header {display:none!important} .main-content {margin:0!important}}</style>
-<p class="no-print"><a href="{% url 'caja:accesos' %}">Registro de accesos a los módulos</a></p>
+{% if user.is_superuser %}<p class="no-print"><a class="btn btn-outline-primary" href="{% url 'caja:accesos' %}"><i class="fas fa-clock me-2"></i>Registro de accesos a los módulos</a></p>{% endif %}
 <form method="get" class="d-flex gap-2 mb-3 no-print"><label for="fecha">Día</label><input id="fecha" type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control" style="max-width:200px"><button class="btn btn-outline-primary">Consultar</button></form>
 <p>Cuadre del {{ fecha|date:"d/m/Y" }}. Los cobros se registran por fecha de pago, aunque la venta sea de otro día.</p>
 {% if sin_caja %}<div class="alert alert-warning"><strong>Cobros fuera de caja: requieren conciliación.</strong> {% if not caja %}Al abrir la caja de hoy se incluirán automáticamente los cobros de hoy.{% else %}No modifican el cierre guardado.{% endif %}<ul>{% for cobro in sin_caja %}<li><a href="{% url 'ventas:detalle' cobro.venta_id %}">{{ cobro.venta.numero }}</a> · {{ cobro.fecha|date:"H:i" }} · {{ cobro.metodo }} · Q{{ cobro.monto|floatformat:2 }}</li>{% endfor %}</ul></div>{% endif %}

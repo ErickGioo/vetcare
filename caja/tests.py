@@ -18,7 +18,7 @@ from .operaciones import abrir, cerrar, totales
 @override_settings(SECURE_SSL_REDIRECT=False, ALLOWED_HOSTS=['testserver'])
 class CajaTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user('admin', is_staff=True)
+        self.user = User.objects.create_user('admin', is_staff=True, is_superuser=True)
         self.client.force_login(self.user)
         self.owner = Cliente.objects.create(nombre='Ana', apellido='Test')
         self.service = Producto.objects.create(codigo='S', nombre='Consulta', tipo='servicio', precio_venta=100)
@@ -127,5 +127,5 @@ class CajaTests(TestCase):
         self.assertEqual(record.resultado,200)
         self.assertNotIn('NO_GUARDAR',record.pantalla)
         self.assertContains(self.client.get('/caja/accesos/'),'ventas:lista')
-        self.client.force_login(User.objects.create_user('lector'))
+        self.client.force_login(User.objects.create_user('lector', is_staff=True))
         self.assertEqual(self.client.get('/caja/accesos/').status_code,403)

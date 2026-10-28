@@ -2,7 +2,7 @@
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block content %}
-{% if user.is_staff %}
+{% if user.is_superuser %}
 <div class="d-flex justify-content-end mb-3">
     <a href="{% url 'caja:accesos' %}" class="btn btn-outline-primary"><i class="fas fa-clock me-2"></i>Registro de accesos</a>
 </div>
