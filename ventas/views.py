@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django import forms
 from django.conf import settings
+from django.utils import timezone
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import transaction
 from django.db.models import Sum, Q
@@ -32,8 +33,14 @@ class VentaForm(forms.ModelForm):
 @login_required
 def lista(request):
     ventas = Venta.objects.select_related('cliente', 'empleado').all()
-    total_mes = ventas.filter(estado='pagada').aggregate(t=Sum('total'))['t'] or 0
-    return render(request, 'ventas/lista.html', {'ventas': ventas, 'total_mes': total_mes})
+    today = timezone.localdate()
+    total_mes = ventas.filter(estado='pagada', fecha__date__gte=today.replace(day=1), fecha__date__lte=today).aggregate(t=Sum('total'))['t'] or 0
+    estado = request.GET.get('estado', '')
+    if estado in dict(Venta.ESTADO_CHOICES):
+        ventas = ventas.filter(estado=estado)
+    else:
+        estado = ''
+    return render(request, 'ventas/lista.html', {'ventas': ventas, 'total_mes': total_mes, 'estado': estado})
 
 @login_required
 def crear(request):
