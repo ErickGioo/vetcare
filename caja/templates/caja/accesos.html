@@ -1,0 +1,10 @@
+{% extends 'base/base.html' %}
+{% block title %}Registro de accesos{% endblock %}
+{% block page_title %}Registro de accesos{% endblock %}
+{% block content %}
+<p>Usuario, fecha y hora de acceso a los módulos (hora de Guatemala). Se registran pantallas y solicitudes; un acceso no significa que el formulario se haya guardado correctamente.</p>
+<form method="get" class="d-flex gap-2 mb-3"><label for="fecha">Fecha</label><input id="fecha" type="date" class="form-control" style="max-width:200px" name="fecha" value="{{ fecha|date:'Y-m-d' }}"><button class="btn btn-primary">Consultar</button></form>
+<div class="card table-responsive"><table class="table"><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Pantalla / acción</th><th>Método</th><th>Resultado HTTP</th></tr></thead><tbody>{% for acceso in pagina %}<tr><td>{{ acceso.fecha|date:"d/m/Y H:i:s" }}</td><td>{{ acceso.usuario }}</td><td>{{ acceso.pantalla }}</td><td>{{ acceso.metodo }}</td><td>{{ acceso.resultado }}</td></tr>{% empty %}<tr><td colspan="5">Sin accesos registrados en esta fecha.</td></tr>{% endfor %}</tbody></table></div>
+<p>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}{% if pagina.has_previous %} · <a href="?fecha={{ fecha|date:'Y-m-d' }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}{% if pagina.has_next %} · <a href="?fecha={{ fecha|date:'Y-m-d' }}&page={{ pagina.next_page_number }}">Siguiente</a>{% endif %}</p>
+<p class="text-muted">No incluye accesos anteriores a la activación, intentos sin sesión ni el refresco automático de la pantalla TV o la búsqueda de razas. No almacena contenido clínico ni datos de los formularios.</p>
+{% endblock %}

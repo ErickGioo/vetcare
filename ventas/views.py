@@ -15,6 +15,7 @@ from .models import Venta, DetalleVenta, PagoNeonet, TransaccionHistorial
 from .neonet import checkout_fields, verify_response
 from productos.models import Producto
 from .operaciones import agregar_articulo, cambiar_cantidad, editable
+from caja.operaciones import registrar_cobro
 
 class VentaForm(forms.ModelForm):
     class Meta:
@@ -110,8 +111,12 @@ def confirmar_pago(request, pk):
         if not venta.items.exists() or venta.total <= 0:
             messages.error(request, 'Agrega artículos con un total mayor que cero antes de confirmar el pago.')
             return redirect('ventas:detalle', pk=pk)
+        if venta.tipo_pago == 'mixto':
+            messages.error(request, 'Para el cuadre de caja selecciona un método de pago único. Los pagos mixtos requieren un desglose que aún no está disponible.')
+            return redirect('ventas:detalle', pk=pk)
         venta.estado = 'pagada'
         venta.save(update_fields=['estado'])
+        registrar_cobro(venta)
         TransaccionHistorial.objects.filter(tipo='venta', referencia_id=venta.pk).update(monto=venta.total)
     messages.success(request, f'Venta #{venta.numero} pagada. Total: Q{venta.total}')
     return redirect('ventas:detalle', pk=pk)
@@ -187,10 +192,11 @@ def respuesta_neonet(request):
         pago.save()
 
         if pago.estado == 'aceptado':
-            venta = pago.venta
+            venta = Venta.objects.select_for_update().get(pk=pago.venta_id)
             venta.estado = 'pagada'
             venta.tipo_pago = 'tarjeta'
             venta.save(update_fields=['estado', 'tipo_pago'])
+            registrar_cobro(venta)
             TransaccionHistorial.objects.filter(tipo='venta', referencia_id=venta.pk).update(monto=venta.total)
     return render(request, 'ventas/neonet_resultado.html', {'pago': pago, 'venta': pago.venta})
 

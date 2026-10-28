@@ -175,3 +175,13 @@ En la VM, construir la imagen, respaldar PostgreSQL y aplicar `python manage.py 
 ### Control de servicios realizados
 
 En `/informes/servicios/` se cuentan citas con estado Completada por tipo (incluido grooming), con períodos diario, semanal de lunes a domingo y mensual. Se usa la fecha programada de la cita en la zona horaria de la aplicación. El conteo no depende del pago y no crea productos, ventas ni movimientos de inventario. No suma historias clínicas ni ventas a las citas, para evitar duplicar atenciones; las consultas sin cita no se incluyen. Disponible para administradores desde Informes.
+
+### Caja diaria
+
+`/caja/` (administradores) permite apertura del día con fondo inicial, cobros de efectivo/transferencias/tarjeta, conteo y cierre definitivo con diferencias por método, responsables, observaciones e impresión. Una apertura por fecha, sin reapertura; debe cerrarse la anterior. Efectivo esperado = fondo inicial + cobros en efectivo. Transferencias y tarjeta se concilian contra banco/terminal, sin sumarse al efectivo físico. No incluye gastos, retiros, depósitos ni otros movimientos ajenos a ventas.
+
+Cada confirmación de pago guarda un `CobroCaja` único por venta con fecha real de cobro en Guatemala y monto/método conservados. NeoNet solo registra respuestas aceptadas, sin duplicar callbacks. Se serializan cobros, aperturas y cierres en PostgreSQL con una fila de control. Los cierres guardan importes esperados y contados; un cobro posterior queda fuera del cierre, visible como pendiente de conciliar en su fecha. Los cobros de hoy anteriores a la apertura se incorporan al abrir. La caja no cambia el criterio de los informes antiguos de ventas/cierres (fecha de creación de venta).
+
+Los pagos históricos anteriores a este módulo no se reconstruyen con fechas supuestas. Los pagos mixtos nuevos no se confirman hasta disponer de desglose; debe seleccionarse un método único. No se realiza cobro real al abrir o cerrar caja. Un pago NeoNet pendiente impide cerrar para evitar omitir una confirmación en proceso.
+
+`/caja/accesos/` muestra a administradores el usuario, fecha/hora de Guatemala, pantalla/acción, método HTTP y resultado, con filtro diario y paginación. El middleware registra solicitudes autenticadas desde su activación (incluye inicio y cierre de sesión); no almacena parámetros, formularios, IP, credenciales ni datos clínicos. Omite archivos estáticos, salud, búsqueda de razas y refrescos automáticos de TV; sí registra la apertura inicial de TV. No equivale a una auditoría de cambios de campos ni registra intentos de acceso anónimos. Los registros se conservan sin edición o borrado desde la interfaz.
