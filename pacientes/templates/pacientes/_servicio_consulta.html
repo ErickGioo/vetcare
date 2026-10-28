@@ -1,50 +1,10 @@
 <section class="card card-body mb-4" aria-labelledby="titulo-cobro">
-  <h5 id="titulo-cobro">¿Qué servicio vas a realizar?</h5>
-  <p class="text-muted">Selecciona la atención y su tarifa. La venta quedará pendiente hasta que confirmes el pago.</p>
-  {% if not billing.fields.servicio.queryset.exists %}<div class="alert alert-info" id="sin-servicios">Aún no hay servicios con precio configurado.{% if user.is_staff %} Agrega el primero aquí mismo para continuar.{% else %} Solicita al administrador que agregue una tarifa.{% endif %}</div>{% endif %}
+  <h5 id="titulo-cobro">Servicio de la atención</h5>
+  <p class="text-muted">Selecciona un servicio existente. Puedes utilizarlo en todas las atenciones; registrar una consulta no crea productos ni modifica el inventario.</p>
   <label class="form-label" for="id_servicio">Servicio y precio <span class="text-danger">*</span></label>
   {{ billing.servicio }}
   {% if billing.servicio.errors %}<div class="text-danger mt-2">{{ billing.servicio.errors }}</div>{% endif %}
-  {% if user.is_staff %}
-  <details class="mt-3" id="nuevo-servicio" {% if not billing.fields.servicio.queryset.exists %}open{% endif %}>
-    <summary class="text-primary" style="cursor:pointer;font-weight:600">＋ Agregar un servicio sin salir de la consulta</summary>
-    <div class="border rounded p-3 mt-2" style="background:#f5faf7">
-      <div class="row g-3">
-        <div class="col-12"><label for="servicio-nombre" class="form-label">Nombre del servicio</label><input id="servicio-nombre" class="form-control" maxlength="200" placeholder="Ej. Consulta general, revisión o grooming" autocomplete="off"></div>
-        <div class="col-sm-6"><label for="servicio-precio" class="form-label">Precio que cobrarás (Q)</label><input id="servicio-precio" class="form-control" type="number" min="0.01" max="99999999.99" step="0.01" placeholder="0.00" inputmode="decimal"></div>
-        <div class="col-sm-6"><label for="servicio-costo" class="form-label">Costo directo (Q), opcional</label><input id="servicio-costo" class="form-control" type="number" min="0" max="99999999.99" step="0.01" placeholder="0.00" inputmode="decimal"><small class="text-muted">Se usa para la ganancia bruta. No incluye nómina.</small></div>
-      </div>
-      <button type="button" id="guardar-servicio" class="btn btn-outline-primary mt-3">Guardar servicio y seleccionarlo</button>
-      <p class="small text-muted mt-2 mb-0">Quedará disponible para las próximas atenciones. Los datos de esta consulta se conservan.</p>
-    </div>
-  </details>
-  {% endif %}
-  <p id="resultado-servicio" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+  {% if not billing.fields.servicio.queryset.exists %}<div class="alert alert-info mt-3">No hay tarifas disponibles. Configura el catálogo una sola vez antes de registrar atenciones.</div>{% endif %}
+  <p class="small text-muted mt-3 mb-0">La venta queda pendiente hasta confirmar el pago. El conteo de citas realizadas se consulta en Informes → Servicios realizados.</p>
+  {% if user.is_staff %}<a class="mt-2" href="{% url 'productos:lista' %}" target="_blank" rel="noopener">Administrar catálogo de servicios en otra pestaña</a>{% endif %}
 </section>
-<script>
-(()=>{
- const button=document.getElementById('guardar-servicio');if(!button)return;
- const select=document.getElementById('id_servicio'),status=document.getElementById('resultado-servicio');
- button.addEventListener('click',async()=>{
-   const name=document.getElementById('servicio-nombre'),price=document.getElementById('servicio-precio'),cost=document.getElementById('servicio-costo');
-   status.className='small mt-2 mb-0 text-danger';
-   if(!name.value.trim()){status.textContent='Escribe el nombre del servicio.';name.focus();return;}
-   if(!price.value||!price.checkValidity()){status.textContent='Indica un precio mayor que cero, con un máximo de dos decimales.';price.focus();return;}
-   if(cost.value&&!cost.checkValidity()){status.textContent='Revisa el costo directo.';cost.focus();return;}
-   const data=new FormData();data.set('nombre',name.value.trim());data.set('precio',price.value);data.set('costo',cost.value);
-   button.disabled=true;button.textContent='Guardando…';status.textContent='';
-   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
-   try{
-     const response=await fetch('{% url "pacientes:crear_servicio" %}',{method:'POST',body:data,signal:controller.signal,headers:{'X-CSRFToken':document.querySelector('[name=csrfmiddlewaretoken]').value}});
-     if(response.redirected)throw new Error('Tu sesión expiró. Abre el inicio de sesión en otra pestaña y vuelve a intentar.');
-     const result=await response.json();if(!response.ok)throw new Error(result.error||'No se pudo guardar el servicio.');
-     let option=Array.from(select.options).find(o=>o.value===String(result.id));
-     if(!option){option=new Option(result.etiqueta,result.id);select.add(option);}
-     select.value=String(result.id);select.dispatchEvent(new Event('change'));
-     document.getElementById('sin-servicios')?.remove();document.getElementById('nuevo-servicio').open=false;
-     status.className='small mt-2 mb-0 text-success';status.textContent=result.etiqueta+' seleccionado. Continúa con los datos de la consulta.';
-   }catch(error){status.textContent=error.name==='AbortError'?'La conexión tardó demasiado. Reintenta; tus datos siguen aquí.':(error.message||'No se pudo guardar. Reintenta sin salir de la consulta.');}
-   finally{clearTimeout(timeout);button.disabled=false;button.textContent='Guardar servicio y seleccionarlo';}
- });
-})();
-</script>

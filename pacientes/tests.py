@@ -132,4 +132,16 @@ class ClinicIntegrationTests(TestCase):
         self.assertEqual(client.post('/pacientes/servicios/nuevo/',{'nombre':'Sin CSRF','precio':'10'}).status_code,403)
         response=self.client.post(f'/pacientes/{self.pet.pk}/historial/nuevo/',{'motivo':'Conservar este motivo','estado':'abierta','servicio':self.service.pk})
         self.assertContains(response,'Conservar este motivo')
-        self.assertContains(response,'Guardar servicio y seleccionarlo')
+        self.assertNotContains(response,'Guardar servicio y seleccionarlo')
+        self.assertContains(response,'Selecciona un servicio existente')
+
+    def test_consultations_reuse_catalog_without_creating_products(self):
+        count = Producto.objects.count()
+        for _ in range(2):
+            response = self.client.post(f'/pacientes/{self.pet.pk}/historial/nuevo/', dict(
+                motivo='Control', diagnostico_definitivo='Sano', tratamiento='Reposo',
+                estado='cerrada', servicio=self.service.pk))
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(Producto.objects.count(), count)
+        self.assertEqual(Venta.objects.count(), 2)
+        self.assertFalse(MovimientoInventario.objects.exists())

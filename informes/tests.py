@@ -81,3 +81,19 @@ class ReportTests(TestCase):
     def test_empty_reports(self):
         for path in ['/informes/', '/informes/ventas/', '/informes/cierres/', '/informes/inventario/', '/informes/consultas/']:
             self.assertEqual(self.client.get(path).status_code, 200)
+
+    def test_service_counts_completed_appointments_without_sales(self):
+        from datetime import datetime
+        from citas.models import Cita
+        for day, kind, state in [(1,'peluqueria','completada'), (2,'peluqueria','completada'),
+                                 (2,'consulta','completada'), (2,'bano','cancelada'),
+                                 (2,'peluqueria','pendiente'), (8,'bano','completada')]:
+            Cita.objects.create(paciente=self.pet, tipo=kind, estado=state, motivo='Atención',
+                fecha_hora=timezone.make_aware(datetime(2026, 6, day, 10)))
+        HistorialMedico.objects.create(paciente=self.pet, motivo='Sin duplicar', diagnostico_definitivo='Sano', tratamiento='Reposo', estado='cerrada')
+        for period, expected in [('diario',2), ('semanal',3), ('mensual',4)]:
+            response = self.client.get('/informes/servicios/', {'fecha':'2026-06-02','periodo':period})
+            self.assertEqual(response.context['total'], expected)
+        self.assertFalse(Venta.objects.exists())
+        self.client.force_login(User.objects.create_user('no_staff'))
+        self.assertEqual(self.client.get('/informes/servicios/').status_code,403)

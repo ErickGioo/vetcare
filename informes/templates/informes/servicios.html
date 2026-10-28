@@ -1,0 +1,15 @@
+{% extends 'base/base.html' %}
+{% block title %}Servicios realizados{% endblock %}
+{% block page_title %}Servicios realizados{% endblock %}
+{% block content %}
+<p>Control de citas completadas del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}. El conteo es independiente de las ventas y del pago.</p>
+<form method="get" class="card card-body mb-4">
+<div class="row g-3 align-items-end">
+<div class="col-sm-4"><label for="periodo" class="form-label">Período</label><select id="periodo" name="periodo" class="form-select"><option value="diario" {% if periodo == 'diario' %}selected{% endif %}>Diario</option><option value="semanal" {% if periodo == 'semanal' %}selected{% endif %}>Semanal (lunes a domingo)</option><option value="mensual" {% if periodo == 'mensual' %}selected{% endif %}>Mensual</option></select></div>
+<div class="col-sm-4"><label for="fecha" class="form-label">Fecha de referencia</label><input id="fecha" name="fecha" type="date" value="{{ fecha|date:'Y-m-d' }}" class="form-control"></div>
+<div class="col-sm-4"><button class="btn btn-primary">Consultar</button></div>
+</div></form>
+<div class="card"><div class="card-header">Total: {{ total }} atenciones realizadas</div><div class="card-body p-0"><table class="table mb-0"><thead><tr><th>Tipo de servicio</th><th class="text-end">Cantidad</th></tr></thead><tbody>{% for servicio in servicios %}<tr><td>{{ servicio.nombre }}</td><td class="text-end">{{ servicio.cantidad }}</td></tr>{% endfor %}</tbody></table></div></div>
+<p class="text-muted mt-3">Marca cada cita como Completada al finalizar la atención para incluirla aquí. Las citas pendientes, canceladas y las inasistencias no cuentan. Una consulta clínica y una venta no se suman como atenciones adicionales.</p>
+<a href="{% url 'informes:resumen' %}">Volver a informes</a>
+{% endblock %}

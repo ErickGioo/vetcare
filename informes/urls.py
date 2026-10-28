@@ -7,6 +7,7 @@ app_name = 'informes'
 
 urlpatterns = [
     path('', operacion.admin_report(views.resumen), name='resumen'),
+    path('servicios/', operacion.admin_report(views.servicios), name='servicios'),
     path('ventas/', operacion.admin_report(views.ventas), name='ventas'),
     path('inventario/', operacion.stock, name='inventario'),
     path('cierres/', operacion.cierre, name='cierres'),

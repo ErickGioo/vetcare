@@ -193,3 +193,30 @@ def pantalla(request):
         'stock_bajo': Producto.objects.filter(activo=True, stock__lte=F('stock_minimo')).exclude(tipo='servicio').count(),
         'proximas': proximas,
     })
+
+
+@login_required
+def servicios(request):
+    """Conteo operativo de citas completadas; independiente del cobro."""
+    today = timezone.localdate()
+    try:
+        selected = date.fromisoformat(request.GET.get('fecha', today.isoformat()))
+    except ValueError:
+        selected = today
+    period = request.GET.get('periodo', 'diario')
+    if period == 'semanal':
+        start = selected - timedelta(days=selected.weekday())
+        end = start + timedelta(days=6)
+    elif period == 'mensual':
+        start = selected.replace(day=1)
+        end = _shift_month(start, 1) - timedelta(days=1)
+    else:
+        period = 'diario'
+        start = end = selected
+    appointments = Cita.objects.filter(fecha_hora__date__range=(start, end), estado='completada')
+    counts = dict(appointments.values('tipo').annotate(total=Count('pk')).values_list('tipo', 'total'))
+    rows = [{'nombre': label, 'cantidad': counts.get(key, 0)} for key, label in Cita.TIPO_CHOICES]
+    return render(request, 'informes/servicios.html', {
+        'fecha': selected, 'periodo': period, 'desde': start, 'hasta': end,
+        'servicios': rows, 'total': sum(counts.values()),
+    })

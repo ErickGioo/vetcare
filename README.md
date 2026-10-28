@@ -154,7 +154,7 @@ vetcare/
 
 - **Pantalla TV:** `/citas/tv/` muestra las citas de hoy y sus estados; se actualiza cada 20 segundos. Requiere sesión.
 - **Especies y razas:** `/pacientes/catalogos/` permite al administrador ampliar los catálogos. En el registro del paciente, las razas se filtran por especie y primeras letras, con validación también en el servidor.
-- **Consultas:** selecciona un servicio con su tarifa. Los administradores también pueden crear y seleccionar un servicio desde la misma consulta, indicando nombre, precio y costo directo opcional, sin salir ni perder los datos escritos. Al guardar la atención se genera una venta pendiente vinculada; el ingreso solo se refleja al confirmar el pago. Las consultas anteriores pueden facturarse desde su detalle, sin generar automáticamente cargos retroactivos.
+- **Consultas:** selecciona un servicio con su tarifa. El catálogo se configura una sola vez y se reutiliza: el formulario de consulta no ofrece crear productos ni tarifas. Al guardar la atención se genera una venta pendiente vinculada; el ingreso solo se refleja al confirmar el pago. Las consultas anteriores pueden facturarse desde su detalle, sin generar automáticamente cargos retroactivos.
 - **Grooming:** la agenda ofrece Grooming / peluquería, Baño y Corte de uñas. Se puede asignar un profesional responsable o dejarlo pendiente. Las tarifas se configuran como productos de tipo Servicio y se cobran desde Ventas.
 - **Revisiones:** al indicar fecha y hora en la consulta o postconsulta, se crea una cita de control pendiente. Las actualizaciones reutilizan la cita vinculada.
 - **Corrección de ventas:** en una venta pendiente se puede cambiar la cantidad o quitar artículos. Se ajustan existencias y se registra el movimiento. Las ventas pagadas o con un pago de tarjeta en proceso están protegidas; no hay un flujo de devolución implementado.
@@ -171,3 +171,7 @@ python manage.py test citas pacientes ventas informes
 ```
 
 En la VM, construir la imagen, respaldar PostgreSQL y aplicar `python manage.py migrate --noinput` antes de reiniciar el servicio. El contenedor también aplica las migraciones al arrancar. El `.env` de producción se conserva únicamente en el servidor. Docker publica el puerto 8000 en localhost para usar el proxy existente. Las opciones de cookies seguras y redirección HTTPS son configurables por entorno y mantienen valores seguros por defecto.
+
+### Control de servicios realizados
+
+En `/informes/servicios/` se cuentan citas con estado Completada por tipo (incluido grooming), con períodos diario, semanal de lunes a domingo y mensual. Se usa la fecha programada de la cita en la zona horaria de la aplicación. El conteo no depende del pago y no crea productos, ventas ni movimientos de inventario. No suma historias clínicas ni ventas a las citas, para evitar duplicar atenciones; las consultas sin cita no se incluyen. Disponible para administradores desde Informes.
