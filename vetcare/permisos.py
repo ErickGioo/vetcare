@@ -14,6 +14,20 @@ class PermisosModulosMiddleware(MiddlewareMixin):
         required = []
         if namespace in models:
             model = models[namespace]
+            if namespace == 'proveedores' and action == 'marcas':
+                required = ['proveedores.view_marca']
+                if request.method == 'POST':
+                    required += ['proveedores.add_marca']
+                if not request.user.has_perms(required):
+                    raise PermissionDenied
+                return None
+            if namespace == 'ventas' and action == 'descuentos':
+                required=['ventas.view_solicituddescuento']
+                if request.method=='POST':
+                    required+=['ventas.change_solicituddescuento']
+                if not request.user.has_perms(required):
+                    raise PermissionDenied
+                return None
             if namespace == 'ventas' and action == 'respuesta_neonet':
                 return None  # Callback autenticado por firma, no por sesión.
             if namespace == 'productos' and action in ('categorias','crear_categoria','editar_categoria'):

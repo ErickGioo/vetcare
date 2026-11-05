@@ -1,6 +1,18 @@
 from django.db import models
 
+class Marca(models.Model):
+    nombre = models.CharField(max_length=120, unique=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Proveedor(models.Model):
+    marcas = models.ManyToManyField(Marca, blank=True, related_name='proveedores')
     nombre = models.CharField(max_length=200)
     empresa = models.CharField(max_length=200, blank=True)
     nit = models.CharField(max_length=20, blank=True, verbose_name='NIT')

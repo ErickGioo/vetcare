@@ -21,8 +21,8 @@ class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
         fields = [
-            'codigo', 'nombre', 'categoria', 'proveedor',
-            'descripcion', 'precio_compra', 'precio_venta', 'descuento',
+            'codigo', 'codigo_barras', 'nombre', 'marca', 'categoria', 'proveedor', 'proveedores',
+            'descripcion', 'precio_compra', 'precio_venta', 'precio_mayorista', 'descuento',
             'stock', 'stock_minimo', 'unidad_medida', 'requiere_receta',
             'activo', 'imagen'
         ]
@@ -46,9 +46,19 @@ class ProductoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['codigo'].required = False
+        if self.instance.pk:
+            self.fields['stock'].disabled = True
+            self.fields['stock'].help_text = 'Total de todas las ubicaciones. Usa inventario general para ingresos y traslados.'
+        for name in ('marca','proveedores','codigo_barras','precio_mayorista'):
+            self.fields[name].widget.attrs['class'] = 'form-select' if isinstance(self.fields[name].widget,(forms.Select, forms.SelectMultiple)) else 'form-control'
+        self.fields['codigo_barras'].widget.attrs.update({'autocomplete':'off','placeholder':'Escanea aquí el código del empaque'})
+        self.fields['proveedores'].help_text = 'Proveedores alternativos del mismo producto. Usa Ctrl o Cmd para seleccionar varios.'
         self.fields['codigo'].help_text = 'Opcional: ingresa un código de barras o deja vacío para generar un código único.'
         self.fields['categoria'].required = True
         self.fields['categoria'].queryset = Categoria.objects.filter(activa=True)
+
+    def clean_codigo_barras(self):
+        return (self.cleaned_data.get('codigo_barras') or '').strip() or None
 
     def clean_codigo(self):
         from uuid import uuid4
@@ -70,6 +80,9 @@ class ProductoForm(forms.ModelForm):
         if commit:
             product.save()
             self.save_m2m()
+            if product.tipo != 'servicio':
+                from inventario.operaciones import asegurar_existencias
+                asegurar_existencias(product)
         return product
 
 class AjusteInventarioForm(forms.Form):

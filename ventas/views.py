@@ -16,15 +16,19 @@ from .neonet import checkout_fields, verify_response
 from productos.models import Producto
 from .operaciones import agregar_articulo, cambiar_cantidad, editable
 from caja.operaciones import registrar_cobro
+from inventario.operaciones import ubicaciones_usuario, validar_punto
+from .descuentos import aplicar_descuento, validar_descuento, resolver_descuento, huella
 
 class VentaForm(forms.ModelForm):
     class Meta:
         model = Venta
-        fields = ['numero', 'cliente', 'paciente', 'empleado', 'tipo_pago', 'notas']
+        fields = ['numero', 'punto_venta', 'mayorista', 'cliente', 'paciente', 'empleado', 'tipo_pago', 'notas']
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for f in self.fields.values():
-            if isinstance(f.widget, (forms.Select,)):
+            if isinstance(f.widget, forms.CheckboxInput):
+                f.widget.attrs['class']='form-check-input'
+            elif isinstance(f.widget, (forms.Select,)):
                 f.widget.attrs['class'] = 'form-select'
             elif isinstance(f.widget, forms.Textarea):
                 f.widget.attrs.update({'class': 'form-control', 'rows': 2})
@@ -33,9 +37,12 @@ class VentaForm(forms.ModelForm):
 
 @login_required
 def lista(request):
-    ventas = Venta.objects.select_related('cliente', 'empleado').all()
+    ventas = Venta.objects.select_related('cliente', 'empleado').filter(punto_venta__in=ubicaciones_usuario(request.user))
     today = timezone.localdate()
     total_mes = ventas.filter(estado='pagada', fecha__date__gte=today.replace(day=1), fecha__date__lte=today).aggregate(t=Sum('total'))['t'] or 0
+    canal=request.GET.get('canal','')
+    if canal=='mayorista':
+        ventas=ventas.filter(mayorista=True)
     estado = request.GET.get('estado', '')
     if estado in dict(Venta.ESTADO_CHOICES):
         ventas = ventas.filter(estado=estado)
@@ -45,7 +52,10 @@ def lista(request):
 
 @login_required
 def crear(request):
-    form = VentaForm(request.POST or None)
+    form = VentaForm(request.POST or None,initial={'mayorista':request.GET.get('mayorista')=='1'})
+    form.fields['punto_venta'].queryset=ubicaciones_usuario(request.user)
+    if form.fields['punto_venta'].queryset.count()==1:
+        form.fields['punto_venta'].initial=form.fields['punto_venta'].queryset.first().pk
     productos = Producto.objects.filter(activo=True, stock__gt=0)
     if form.is_valid():
         venta = form.save(commit=False)
@@ -65,12 +75,20 @@ def crear(request):
 @login_required
 def detalle(request, pk):
     venta = get_object_or_404(Venta, pk=pk)
+    validar_punto(request.user,venta.punto_venta_id)
     if request.method == 'POST':
         try:
             if 'agregar_item' in request.POST:
                 quantity = forms.IntegerField(min_value=1).clean(request.POST.get('cantidad'))
-                product_id = forms.IntegerField(min_value=1).clean(request.POST.get('producto'))
-                get_object_or_404(Producto, pk=product_id, activo=True)
+                barcode = request.POST.get('codigo_barras', '').strip()
+                if barcode:
+                    matches = list(Producto.objects.filter(activo=True).filter(Q(codigo=barcode)|Q(codigo_barras=barcode))[:2])
+                    if len(matches) != 1:
+                        raise ValidationError('Código no encontrado o ambiguo. Revisa el catálogo antes de agregarlo.')
+                    product_id = matches[0].pk
+                else:
+                    product_id = forms.IntegerField(min_value=1).clean(request.POST.get('producto'))
+                    get_object_or_404(Producto, pk=product_id, activo=True)
                 agregar_articulo(pk, product_id, quantity, request.user)
                 messages.success(request, 'Artículo agregado y totales actualizados.')
             elif 'actualizar_item' in request.POST or 'eliminar_item' in request.POST:
@@ -79,6 +97,11 @@ def detalle(request, pk):
                 quantity = 0 if 'eliminar_item' in request.POST else forms.IntegerField(min_value=1).clean(request.POST.get('cantidad'))
                 cambiar_cantidad(pk, item_id, quantity, request.user)
                 messages.success(request, 'Venta corregida. Inventario y totales actualizados.')
+            elif 'aplicar_descuento' in request.POST:
+                from decimal import Decimal
+                percentage=forms.DecimalField(min_value=Decimal('0'),max_value=Decimal('100'),max_digits=5,decimal_places=2).clean(request.POST.get('porcentaje'))
+                approval=aplicar_descuento(pk,percentage,request.POST.get('motivo_descuento','')[:500],request.user)
+                messages.success(request,'Solicitud registrada. Comparte el mensaje por WhatsApp para pedir autorización.' if approval else 'Descuento actualizado por debajo del umbral de autorización.')
             elif 'actualizar_pago' in request.POST:
                 method = forms.ChoiceField(choices=Venta.TIPO_PAGO_CHOICES).clean(request.POST.get('tipo_pago'))
                 with transaction.atomic():
@@ -91,14 +114,25 @@ def detalle(request, pk):
             messages.error(request, ' '.join(error.messages))
         return redirect('ventas:detalle', pk=pk)
     items = venta.items.select_related('producto').all()
-    productos = Producto.objects.filter(activo=True).filter(Q(stock__gt=0) | Q(tipo='servicio'))
-    return render(request, 'ventas/detalle.html', {'venta': venta, 'items': items, 'productos': productos, 'formas_pago':Venta.TIPO_PAGO_CHOICES})
+    from inventario.models import Existencia
+    productos = Producto.objects.filter(activo=True).filter(Q(existencias__ubicacion_id=venta.punto_venta_id,existencias__cantidad__gt=0)|Q(tipo='servicio')).distinct()
+    balances=dict(Existencia.objects.filter(ubicacion_id=venta.punto_venta_id,producto__in=productos).values_list('producto_id','cantidad'))
+    for product in productos:
+        product.stock_local=balances.get(product.pk,0)
+    from urllib.parse import urlencode
+    approvals=list(venta.solicitudes_descuento.select_related('solicitada_por','resuelta_por')[:10])
+    approval_url=request.build_absolute_uri('/ventas/descuentos/')
+    for approval in approvals:
+        approval.vigente=approval.huella==huella(venta)
+        approval.whatsapp='https://wa.me/?'+urlencode({'text':f'Solicitud de descuento #{approval.pk}: venta {venta.numero}, {approval.porcentaje} %, total Q{approval.total_solicitado}. Autorizar con cuenta de administrador: {approval_url}'})
+    return render(request, 'ventas/detalle.html', {'aprobaciones':approvals,'venta': venta, 'items': items, 'productos': productos, 'formas_pago':Venta.TIPO_PAGO_CHOICES})
 
 @login_required
 @require_POST
 def confirmar_pago(request, pk):
     with transaction.atomic():
         venta = get_object_or_404(Venta.objects.select_for_update(), pk=pk)
+        validar_punto(request.user,venta.punto_venta_id)
         if venta.estado != 'pendiente':
             messages.info(request, 'Esta venta ya no está pendiente.')
             return redirect('ventas:detalle', pk=pk)
@@ -111,6 +145,11 @@ def confirmar_pago(request, pk):
         if not venta.items.exists() or venta.total <= 0:
             messages.error(request, 'Agrega artículos con un total mayor que cero antes de confirmar el pago.')
             return redirect('ventas:detalle', pk=pk)
+        try:
+            validar_descuento(venta)
+        except ValidationError as error:
+            messages.error(request,' '.join(error.messages))
+            return redirect('ventas:detalle',pk=pk)
         if venta.tipo_pago == 'mixto':
             messages.error(request, 'Para el cuadre de caja selecciona un método de pago único. Los pagos mixtos requieren un desglose que aún no está disponible.')
             return redirect('ventas:detalle', pk=pk)
@@ -127,12 +166,18 @@ def confirmar_pago(request, pk):
 @transaction.atomic
 def iniciar_pago_neonet(request, pk):
     venta = get_object_or_404(Venta.objects.select_for_update(), pk=pk)
+    validar_punto(request.user,venta.punto_venta_id)
     if venta.estado != 'pendiente':
         messages.info(request, 'Esta venta ya fue pagada.')
         return redirect('ventas:detalle', pk=venta.pk)
     if not venta.items.exists() or venta.total <= 0:
         messages.error(request, 'Agrega productos antes de cobrar con tarjeta.')
         return redirect('ventas:detalle', pk=venta.pk)
+    try:
+        validar_descuento(venta)
+    except ValidationError as error:
+        messages.error(request,' '.join(error.messages))
+        return redirect('ventas:detalle',pk=pk)
     if not all((settings.NEONET_ACCESS_KEY, settings.NEONET_PROFILE_ID, settings.NEONET_SECRET_KEY)):
         messages.error(request, 'NeoNet no está configurado. Agrega las credenciales sandbox o productivas.')
         return redirect('ventas:detalle', pk=venta.pk)
@@ -203,10 +248,37 @@ def respuesta_neonet(request):
 @login_required
 def historial(request):
     transacciones = TransaccionHistorial.objects.select_related('cliente', 'paciente', 'empleado').all()
+    if not request.user.is_superuser:
+        transacciones=transacciones.filter(tipo='venta',referencia_id__in=Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user)).values('pk'))
     return render(request, 'ventas/historial.html', {'transacciones': transacciones})
 
 
 @login_required
 def comprobante(request, pk):
     venta = get_object_or_404(Venta.objects.select_related('cliente', 'paciente'), pk=pk)
+    validar_punto(request.user,venta.punto_venta_id)
     return render(request, 'ventas/comprobante.html', {'venta': venta, 'items': venta.items.select_related('producto')})
+
+
+@login_required
+def descuentos(request):
+    from django.core.exceptions import PermissionDenied
+    from caja.operaciones import puede_autorizar
+    from .models import SolicitudDescuento
+    if not puede_autorizar(request.user):
+        raise PermissionDenied('Solo administradores pueden revisar autorizaciones.')
+    approvals=SolicitudDescuento.objects.filter(venta__punto_venta__in=ubicaciones_usuario(request.user)).select_related('venta','solicitada_por','resuelta_por')
+    if request.method=='POST':
+        if not request.user.has_perm('ventas.change_solicituddescuento'):
+            raise PermissionDenied
+        key=forms.IntegerField(min_value=1).clean(request.POST.get('solicitud'))
+        approval=get_object_or_404(approvals,pk=key)
+        decision=forms.ChoiceField(choices=[('aprobar','Aprobar'),('rechazar','Rechazar')]).clean(request.POST.get('decision'))
+        try:
+            resolver_descuento(approval.pk,request.user,decision=='aprobar')
+            messages.success(request,'Decisión registrada. Ya puedes volver a la venta.')
+        except ValidationError as error:
+            messages.error(request,' '.join(error.messages))
+        return redirect('ventas:descuentos')
+    from django.core.paginator import Paginator
+    return render(request,'ventas/descuentos.html',{'solicitudes':Paginator(approvals,30).get_page(request.GET.get('page'))})

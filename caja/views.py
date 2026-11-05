@@ -18,7 +18,12 @@ def panel(request):
         selected = date.fromisoformat(request.GET.get('fecha', str(timezone.localdate())))
     except ValueError:
         selected = timezone.localdate()
-    caja = CajaDiaria.objects.filter(fecha=selected).select_related('abierta_por', 'cerrada_por').first()
+    from inventario.operaciones import ubicaciones_usuario
+    from django.shortcuts import get_object_or_404
+    locations=ubicaciones_usuario(request.user)
+    requested=request.GET.get('punto')
+    point=get_object_or_404(locations,pk=requested if str(requested or '').isdigit() else locations.first().pk if locations.exists() else 0)
+    caja = CajaDiaria.objects.filter(fecha=selected,punto_venta=point).select_related('abierta_por', 'cerrada_por').first()
     apertura = AperturaForm(request.POST if request.method == 'POST' and request.POST.get('accion') == 'abrir' else None)
     cierre = CierreForm(request.POST if request.method == 'POST' and request.POST.get('accion') == 'cerrar' else None)
     reapertura = ReaperturaForm(request.POST if request.method == 'POST' and request.POST.get('accion') == 'solicitar_reapertura' else None)
@@ -27,21 +32,21 @@ def panel(request):
             if request.POST.get('accion') == 'solicitar_reapertura' and reapertura.is_valid() and caja:
                 solicitar_reapertura(caja.pk, request.user, reapertura.cleaned_data['motivo'])
                 messages.success(request, 'Solicitud enviada. Un administrador debe autorizarla desde Caja.')
-                return redirect('/caja/?fecha=' + str(caja.fecha))
+                return redirect('/caja/?fecha=' + str(caja.fecha)+'&punto='+str(point.pk))
             elif request.POST.get('accion') in ('aprobar_reapertura', 'rechazar_reapertura') and caja:
                 from django.shortcuts import get_object_or_404
                 solicitud = get_object_or_404(caja.reaperturas, pk=request.POST.get('solicitud') if str(request.POST.get('solicitud','')).isdigit() else 0)
                 resolver_reapertura(solicitud.pk, request.user, request.POST['accion'] == 'aprobar_reapertura')
                 messages.success(request, 'Solicitud resuelta y autorización registrada.')
-                return redirect('/caja/?fecha=' + str(caja.fecha))
+                return redirect('/caja/?fecha=' + str(caja.fecha)+'&punto='+str(point.pk))
             elif request.POST.get('accion') == 'abrir' and apertura.is_valid():
-                nueva = abrir(request.user, apertura.cleaned_data['inicial'])
+                nueva = abrir(request.user, apertura.cleaned_data['inicial'],point.pk)
                 messages.success(request, 'Caja abierta. El efectivo inicial no se cuenta como venta.')
-                return redirect('/caja/?fecha=' + str(nueva.fecha))
+                return redirect('/caja/?fecha=' + str(nueva.fecha)+'&punto='+str(point.pk))
             elif request.POST.get('accion') == 'cerrar' and cierre.is_valid() and caja:
                 cerrar(caja.pk, request.user, cierre.cleaned_data, cierre.cleaned_data['observaciones'])
                 messages.success(request, 'Caja cerrada y cuadre guardado.')
-                return redirect('/caja/?fecha=' + str(caja.fecha))
+                return redirect('/caja/?fecha=' + str(caja.fecha)+'&punto='+str(point.pk))
         except ValidationError as error:
             messages.error(request, ' '.join(error.messages))
     rows = []
@@ -56,12 +61,12 @@ def panel(request):
             rows.append({'nombre':labels[method], 'ventas':amounts[method], 'esperado':expected, 'contado':counted,
                 'diferencia':counted - expected if counted is not None else None})
     return render(request, 'caja/panel.html', {
-        'reapertura':reapertura, 'puede_autorizar':puede_autorizar(request.user),
+        'punto':point,'puntos':locations,'reapertura':reapertura, 'puede_autorizar':puede_autorizar(request.user),
         'solicitudes':caja.reaperturas.select_related('solicitada_por','resuelta_por') if caja else [],
         'pendiente_reapertura':caja.reaperturas.filter(estado='pendiente').exists() if caja else False,
         'caja':caja, 'fecha':selected, 'hoy':timezone.localdate(), 'apertura':apertura, 'cierre':cierre,
-        'filas':rows, 'total_ventas':sales, 'historial':CajaDiaria.objects.all()[:31],
-        'sin_caja':CobroCaja.objects.filter(caja__isnull=True, fecha__date=selected).select_related('venta'),
+        'filas':rows, 'total_ventas':sales, 'historial':CajaDiaria.objects.filter(punto_venta=point)[:31],
+        'sin_caja':CobroCaja.objects.filter(caja__isnull=True, fecha__date=selected,venta__punto_venta=point).select_related('venta'),
     })
 
 

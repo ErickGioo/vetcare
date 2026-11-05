@@ -5,6 +5,7 @@ from django.db import transaction
 
 from productos.models import Producto, MovimientoInventario
 from .models import Venta, DetalleVenta, TransaccionHistorial
+from inventario.operaciones import consumir, validar_punto
 
 
 def editable(sale):
@@ -27,14 +28,18 @@ def actualizar_totales(sale):
 @transaction.atomic
 def agregar_articulo(sale_id, product_id, quantity, user):
     sale = Venta.objects.select_for_update().get(pk=sale_id)
+    validar_punto(user,sale.punto_venta_id)
     editable(sale)
     if quantity < 1:
         raise ValidationError('La cantidad debe ser un entero mayor que cero.')
     product = Producto.objects.select_for_update().get(pk=product_id, activo=True)
     if product.tipo != 'servicio' and quantity > product.stock:
         raise ValidationError(f'Stock insuficiente. Disponible: {product.stock}.')
+    price=product.precio_mayorista if sale.mayorista else product.precio_venta
+    if price is None or price<=0:
+        raise ValidationError('Configura el precio mayorista del producto antes de venderlo por distribución.')
     item = DetalleVenta.objects.create(venta=sale, producto=product, cantidad=quantity,
-        precio_unitario=product.precio_venta, descuento_pct=product.descuento)
+        precio_unitario=price, descuento_pct=product.descuento)
     actualizar_totales(sale)
     return item
 
@@ -42,6 +47,7 @@ def agregar_articulo(sale_id, product_id, quantity, user):
 @transaction.atomic
 def cambiar_cantidad(sale_id, item_id, quantity, user):
     sale = Venta.objects.select_for_update().get(pk=sale_id)
+    validar_punto(user,sale.punto_venta_id)
     editable(sale)
     item = DetalleVenta.objects.select_for_update().get(pk=item_id, venta=sale)
     if quantity < 0:
@@ -52,14 +58,7 @@ def cambiar_cantidad(sale_id, item_id, quantity, user):
     product = Producto.objects.select_for_update().get(pk=item.producto_id)
     difference = quantity - item.cantidad
     if product.tipo != 'servicio' and difference:
-        if difference > product.stock:
-            raise ValidationError(f'Stock insuficiente. Disponible: {product.stock}.')
-        before = product.stock
-        product.stock -= difference
-        product.save(update_fields=['stock', 'fecha_actualizacion'])
-        MovimientoInventario.objects.create(producto=product, tipo='salida' if difference > 0 else 'entrada',
-            cantidad=abs(difference), stock_anterior=before, stock_posterior=product.stock,
-            motivo='Corrección de cantidad en venta', referencia=sale.numero, usuario=user)
+        consumir(product,sale.punto_venta_id,difference,user,referencia=sale.numero,motivo='Corrección de cantidad en venta')
     if quantity == 0:
         item.delete()
     else:

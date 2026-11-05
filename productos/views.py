@@ -11,7 +11,7 @@ def lista_productos(request):
     categoria_id = request.GET.get('categoria', '')
     productos = Producto.objects.select_related('categoria', 'proveedor').all()
     if query:
-        productos = productos.filter(Q(nombre__icontains=query) | Q(codigo__icontains=query))
+        productos = productos.filter(Q(nombre__icontains=query) | Q(codigo__icontains=query) | Q(codigo_barras__icontains=query) | Q(marca__nombre__icontains=query))
     if categoria_id:
         productos = productos.filter(categoria_id=categoria_id)
     categorias = Categoria.objects.filter(activa=True)
@@ -82,24 +82,20 @@ def ajustar_inventario(request, pk):
         if form.is_valid():
             tipo = form.cleaned_data['tipo']
             cantidad = form.cleaned_data['cantidad']
-            stock_anterior = producto.stock
-            if tipo == 'entrada':
-                producto.stock += cantidad
-            elif tipo == 'salida':
-                if cantidad > producto.stock:
-                    messages.error(request, 'No hay suficiente stock.')
-                    return redirect('productos:ajustar_inventario', pk=pk)
-                producto.stock -= cantidad
-            else:
-                producto.stock = cantidad
-            producto.save()
-            MovimientoInventario.objects.create(
-                producto=producto, tipo=tipo, cantidad=cantidad,
-                stock_anterior=stock_anterior, stock_posterior=producto.stock,
-                motivo=form.cleaned_data['motivo'],
-                referencia=form.cleaned_data.get('referencia', ''),
-                usuario=request.user
-            )
+            from inventario.operaciones import consumir, asegurar_existencias
+            from inventario.models import Existencia
+            from django.db import transaction
+            from django.core.exceptions import ValidationError
+            try:
+                with transaction.atomic():
+                    locked=Producto.objects.select_for_update().get(pk=producto.pk)
+                    central=asegurar_existencias(locked)
+                    balance=Existencia.objects.select_for_update().get(producto=locked,ubicacion=central)
+                    delta=-cantidad if tipo=='entrada' else cantidad if tipo=='salida' else balance.cantidad-cantidad
+                    consumir(locked,central.pk,delta,request.user,form.cleaned_data.get('referencia',''),form.cleaned_data['motivo'])
+            except ValidationError as error:
+                messages.error(request,' '.join(error.messages))
+                return redirect('productos:ajustar_inventario',pk=pk)
             messages.success(request, 'Inventario actualizado correctamente.')
             return redirect('productos:detalle', pk=pk)
     else:

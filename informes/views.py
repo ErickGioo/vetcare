@@ -11,6 +11,7 @@ from django.utils import timezone
 from citas.models import Cita
 from productos.models import MovimientoInventario, Producto
 from ventas.models import DetalleVenta, Venta
+from inventario.operaciones import ubicaciones_usuario
 
 
 MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
@@ -43,8 +44,9 @@ def _date_range(request):
     return start, end
 
 
-def _paid_items(start, end):
+def _paid_items(start, end, user):
     return DetalleVenta.objects.filter(
+        venta__punto_venta__in=ubicaciones_usuario(user),
         venta__estado='pagada',
         venta__fecha__date__range=(start, end),
     ).select_related('producto', 'venta')
@@ -70,11 +72,11 @@ def _month_series():
     return [_shift_month(current, -offset) for offset in range(5, -1, -1)]
 
 
-def _monthly_chart_data():
+def _monthly_chart_data(user):
     months = _month_series()
     first = months[0]
     sales = (
-        Venta.objects.filter(estado='pagada', fecha__date__gte=first)
+        Venta.objects.filter(punto_venta__in=ubicaciones_usuario(user),estado='pagada', fecha__date__gte=first)
         .annotate(periodo=TruncMonth('fecha'))
         .values('periodo')
         .annotate(total=Sum('total'))
@@ -99,17 +101,17 @@ def _monthly_chart_data():
 @login_required
 def resumen(request):
     start, end = _date_range(request)
-    paid_sales = Venta.objects.filter(estado='pagada', fecha__date__range=(start, end))
-    totals = _item_totals(_paid_items(start, end))
+    paid_sales = Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),estado='pagada', fecha__date__range=(start, end))
+    totals = _item_totals(_paid_items(start, end, request.user))
     totals['ingresos'] = paid_sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
     totals['ganancia'] = totals['ingresos'] - totals['costos']
     citas = Cita.objects.filter(fecha_hora__date__range=(start, end))
     top_products = (
-        _paid_items(start, end).values('producto__nombre', 'producto__codigo')
+        _paid_items(start, end, request.user).values('producto__nombre', 'producto__codigo')
         .annotate(unidades=Sum('cantidad'))
         .order_by('-unidades')[:5]
     )
-    chart_data = _monthly_chart_data()
+    chart_data = _monthly_chart_data(request.user)
     return render(request, 'informes/resumen.html', {
         'desde': start,
         'hasta': end,
@@ -128,9 +130,9 @@ def resumen(request):
 @login_required
 def ventas(request):
     start, end = _date_range(request)
-    items = _paid_items(start, end)
+    items = _paid_items(start, end, request.user)
     totals = _item_totals(items)
-    totals['ingresos'] = Venta.objects.filter(estado='pagada', fecha__date__range=(start, end)).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+    totals['ingresos'] = Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),estado='pagada', fecha__date__range=(start, end)).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
     totals['ganancia'] = totals['ingresos'] - totals['costos']
     productos = (
         items.values('producto__codigo', 'producto__nombre')
@@ -147,7 +149,7 @@ def ventas(request):
     for product in productos:
         product['ganancia'] = (product['ingresos'] or 0) - (product['costos'] or 0)
 
-    ventas_pagadas = Venta.objects.filter(estado='pagada', fecha__date__range=(start, end)).select_related('cliente', 'empleado')
+    ventas_pagadas = Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),estado='pagada', fecha__date__range=(start, end)).select_related('cliente', 'empleado')
     return render(request, 'informes/ventas.html', {
         'desde': start, 'hasta': end, 'totals': totals,
         'ventas_pagadas': ventas_pagadas, 'productos': productos,
@@ -184,7 +186,7 @@ def pantalla(request):
     today = now.date()
     citas_hoy = Cita.objects.filter(fecha_hora__date=today).exclude(estado__in=['cancelada', 'no_asistio'])
     proximas = citas_hoy.filter(fecha_hora__gte=now).select_related('paciente', 'veterinario').order_by('fecha_hora')[:6]
-    ventas_hoy = Venta.objects.filter(estado='pagada', fecha__date=today).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+    ventas_hoy = Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),estado='pagada', fecha__date=today).aggregate(total=Sum('total'))['total'] or Decimal('0.00')
     return render(request, 'informes/pantalla.html', {
         'ahora': now,
         'citas_hoy': citas_hoy.count(),

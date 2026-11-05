@@ -16,6 +16,7 @@ from django.views.decorators.cache import never_cache
 from pacientes.models import HistorialMedico
 from productos.models import Producto, MovimientoInventario
 from ventas.models import Venta
+from inventario.operaciones import ubicaciones_usuario
 from .views import _item_totals, _paid_items
 
 
@@ -50,9 +51,9 @@ def cierre(request):
         selected = today
     start = selected.replace(day=1) if monthly else selected
     end = selected.replace(day=calendar.monthrange(selected.year, selected.month)[1]) if monthly else selected
-    sales = Venta.objects.filter(fecha__date__range=(start, end))
+    sales = Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),fecha__date__range=(start, end))
     paid = sales.filter(estado='pagada')
-    totals = _item_totals(_paid_items(start, end))
+    totals = _item_totals(_paid_items(start, end, request.user))
     totals['ingresos'] = paid.aggregate(value=Sum('total'))['value'] or Decimal('0.00')
     totals['ganancia'] = totals['ingresos'] - totals['costos']
     totals['margen'] = totals['ganancia'] / totals['ingresos'] * 100 if totals['ingresos'] else 0

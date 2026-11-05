@@ -16,12 +16,13 @@ def dashboard(request):
     from citas.models import Cita
     from productos.models import Producto
     from ventas.models import Venta
+    from inventario.operaciones import ubicaciones_usuario
     from django.db.models import Sum, F
 
     hoy = timezone.localdate()
     total_pacientes = Paciente.objects.filter(estado='activo').count() if request.user.has_perm('pacientes.view_paciente') else 0
     citas_hoy = Cita.objects.filter(fecha_hora__date=hoy).count() if request.user.has_perm('citas.view_cita') else 0
-    ventas_hoy = (Venta.objects.filter(fecha__date=hoy, estado='pagada').aggregate(t=Sum('total'))['t'] or 0) if request.user.has_perm('ventas.view_venta') else 0
+    ventas_hoy = (Venta.objects.filter(punto_venta__in=ubicaciones_usuario(request.user),fecha__date=hoy, estado='pagada').aggregate(t=Sum('total'))['t'] or 0) if request.user.has_perm('ventas.view_venta') else 0
     productos_stock_bajo = Producto.objects.filter(activo=True, stock__lte=F('stock_minimo')).exclude(tipo='servicio')[:5]
     proximas_citas = Cita.objects.filter(
         fecha_hora__gte=timezone.now(), estado__in=['pendiente','confirmada']
@@ -45,6 +46,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', dashboard, name='home'),
     path('auth/', include('django.contrib.auth.urls')),
+    path('inventario/', include('inventario.urls')),
     path('productos/', include('productos.urls')),
     path('clientes/', include('clientes.urls')),
     path('pacientes/', include('pacientes.urls')),

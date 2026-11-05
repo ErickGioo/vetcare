@@ -8,7 +8,8 @@ class ControlCaja(models.Model):
 
 
 class CajaDiaria(models.Model):
-    fecha = models.DateField(unique=True)
+    punto_venta = models.ForeignKey('inventario.Ubicacion', on_delete=models.PROTECT, default=1)
+    fecha = models.DateField()
     inicial = models.DecimalField(max_digits=14, decimal_places=2)
     abierta_en = models.DateTimeField(auto_now_add=True)
     abierta_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='cajas_abiertas')
@@ -20,6 +21,7 @@ class CajaDiaria(models.Model):
 
     class Meta:
         ordering = ['-fecha']
+        constraints = [models.UniqueConstraint(fields=['fecha','punto_venta'], name='caja_unica_fecha_punto')]
 
 
 class CobroCaja(models.Model):

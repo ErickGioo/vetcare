@@ -55,7 +55,8 @@ def detalle(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk)
     historial = paciente.historial.select_related('veterinario').all() if request.user.has_perm('pacientes.view_historialmedico') else []
     citas = paciente.citas.all()[:5] if request.user.has_perm('citas.view_cita') else []
-    ventas = paciente.ventas.all()[:5] if request.user.has_perm('ventas.view_venta') else []
+    from inventario.operaciones import ubicaciones_usuario
+    ventas = paciente.ventas.filter(punto_venta__in=ubicaciones_usuario(request.user))[:5] if request.user.has_perm('ventas.view_venta') else []
     return render(request, 'pacientes/detalle.html', {
         'paciente': paciente,
         'historial': historial,

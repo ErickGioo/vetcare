@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from clientes.models import Cliente
 from pacientes.models import Paciente
 from productos.models import Producto, MovimientoInventario
@@ -16,6 +16,8 @@ class Venta(models.Model):
         ('transferencia', 'Transferencia'),
         ('mixto', 'Mixto'),
     ]
+    punto_venta = models.ForeignKey('inventario.Ubicacion', on_delete=models.PROTECT, default=1)
+    mayorista = models.BooleanField(default=False, verbose_name='Venta mayorista')
     numero = models.CharField(max_length=20, unique=True, verbose_name='No. Factura')
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='ventas')
     paciente = models.ForeignKey(Paciente, on_delete=models.SET_NULL, null=True, blank=True, related_name='ventas')
@@ -74,25 +76,15 @@ class DetalleVenta(models.Model):
     def total(self):
         return self.subtotal - self.descuento_monto
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         if is_new and not self.costo_unitario:
             self.costo_unitario = self.producto.precio_compra
         super().save(*args, **kwargs)
-        # Registrar movimiento de inventario si es nueva línea
         if is_new and self.producto.tipo != 'servicio':
-            stock_anterior = self.producto.stock
-            self.producto.stock -= self.cantidad
-            self.producto.save()
-            MovimientoInventario.objects.create(
-                producto=self.producto,
-                tipo='salida',
-                cantidad=self.cantidad,
-                stock_anterior=stock_anterior,
-                stock_posterior=self.producto.stock,
-                motivo='Venta',
-                referencia=self.venta.numero,
-            )
+            from inventario.operaciones import consumir
+            consumir(self.producto,self.venta.punto_venta_id,self.cantidad,referencia=self.venta.numero)
 
     @property
     def costo_total(self):
@@ -156,3 +148,19 @@ class PagoNeonet(models.Model):
 
     def __str__(self):
         return f'NeoNet {self.referencia} ({self.estado})'
+
+
+class SolicitudDescuento(models.Model):
+    venta = models.ForeignKey(Venta, on_delete=models.PROTECT, related_name='solicitudes_descuento')
+    porcentaje = models.DecimalField(max_digits=5, decimal_places=2)
+    motivo = models.CharField(max_length=500)
+    huella = models.CharField(max_length=64)
+    total_solicitado = models.DecimalField(max_digits=10, decimal_places=2)
+    solicitada_por = models.ForeignKey('auth.User', on_delete=models.PROTECT, related_name='descuentos_solicitados')
+    solicitada_en = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=12, default='pendiente', choices=[('pendiente','Pendiente'),('aprobada','Aprobada'),('rechazada','Rechazada')])
+    resuelta_por = models.ForeignKey('auth.User', on_delete=models.PROTECT, null=True, blank=True, related_name='descuentos_resueltos')
+    resuelta_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering=['-solicitada_en','-pk']

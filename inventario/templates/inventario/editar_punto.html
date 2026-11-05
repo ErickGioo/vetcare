@@ -1,0 +1,1 @@
+{% extends 'base/base.html' %}{% block page_title %}Editar {{ punto }}{% endblock %}{% block content %}<form method="post" class="card card-body">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Guardar punto y asignaciones</button></form>{% endblock %}

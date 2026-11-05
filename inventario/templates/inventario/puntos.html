@@ -1,0 +1,5 @@
+{% extends 'base/base.html' %}{% block title %}Puntos de venta{% endblock %}{% block page_title %}Puntos de venta{% endblock %}
+{% block content %}
+{% if perms.inventario.add_ubicacion %}<form method="post" class="card card-body mb-3">{% csrf_token %}<h5>Crear punto de venta</h5>{{ form.as_p }}<button class="btn btn-primary">Crear punto</button></form>{% endif %}
+<div class="card"><table class="table"><thead><tr><th>Ubicación</th><th>Función</th><th>Usuarios asignados</th></tr></thead><tbody>{% for punto in puntos %}<tr><td>{{ punto.nombre }} {% if perms.inventario.change_ubicacion %}<a href="{% url 'inventario:editar_punto' punto.pk %}">Editar / asignar usuarios</a>{% endif %}</td><td>{% if punto.central %}Almacén central / distribución{% else %}Punto de venta{% endif %}</td><td>{% for usuario in punto.usuarios.all %}{{ usuario }}{% if not forloop.last %}, {% endif %}{% empty %}Sin asignación{% endfor %}</td></tr>{% endfor %}</tbody></table></div><a href="{% url 'inventario:panel' %}">Volver al inventario general</a>
+{% endblock %}

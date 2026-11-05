@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from proveedores.models import Proveedor
 
 class Categoria(models.Model):
@@ -25,6 +25,10 @@ class Producto(models.Model):
         ('servicio', 'Servicio'),
         ('otro', 'Otro'),
     ]
+    marca = models.ForeignKey('proveedores.Marca', on_delete=models.PROTECT, null=True, blank=True, related_name='productos')
+    proveedores = models.ManyToManyField(Proveedor, blank=True, related_name='catalogo_productos')
+    codigo_barras = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name='Código de barras')
+    precio_mayorista = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Precio mayorista (Q)')
     codigo = models.CharField(max_length=50, unique=True, verbose_name='Código')
     nombre = models.CharField(max_length=200)
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='otro')
@@ -50,6 +54,18 @@ class Producto(models.Model):
 
     def __str__(self):
         return f'{self.codigo} - {self.nombre}'
+
+    @transaction.atomic
+    def save(self,*args,**kwargs):
+        # El total es derivado una vez distribuido: editar precios no puede
+        # sobrescribir existencias vendidas concurrentemente.
+        if self.pk:
+            type(self).objects.select_for_update().get(pk=self.pk)
+            from inventario.models import Existencia
+            if Existencia.objects.filter(producto_id=self.pk).exists():
+                from django.db.models import Sum
+                self.stock=Existencia.objects.filter(producto_id=self.pk).aggregate(n=Sum('cantidad'))['n'] or 0
+        return super().save(*args,**kwargs)
 
     @property
     def precio_final(self):

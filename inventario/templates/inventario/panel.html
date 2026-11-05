@@ -1,0 +1,11 @@
+{% extends 'base/base.html' %}
+{% block title %}Inventario general{% endblock %}
+{% block page_title %}Inventario general y asignaciones{% endblock %}
+{% block content %}
+<p>El stock de cada ubicación es independiente. Un traslado cambia la ubicación de las unidades, sin aumentar el total del producto.</p><a class="btn btn-outline-primary mb-3" href="{% url 'inventario:puntos' %}">Puntos de venta</a>
+{% if perms.inventario.add_traslado %}<details class="card card-body mb-3" {% if form.is_bound %}open{% endif %}><summary>Asignar inventario / registrar traslado</summary><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary">Confirmar traslado</button></form></details>{% endif %}
+<form method="get" class="d-flex gap-2 mb-3"><input name="q" value="{{ request.GET.q }}" placeholder="Buscar producto o escanear código" class="form-control" aria-label="Buscar inventario"><button class="btn btn-primary">Buscar</button></form>
+<div class="card table-responsive"><table class="table"><thead><tr><th>Ubicación</th><th>Producto</th><th>Marca</th><th>Disponible</th></tr></thead><tbody>{% for item in stock %}<tr><td>{{ item.ubicacion }}</td><td>{{ item.producto }}</td><td>{{ item.producto.marca|default:'Sin marca' }}</td><td>{{ item.cantidad }}</td></tr>{% empty %}<tr><td colspan="4">Sin existencias registradas.</td></tr>{% endfor %}</tbody></table></div>
+<p>Página {{ stock.number }} de {{ stock.paginator.num_pages }} {% if stock.has_previous %}<a href="?q={{ request.GET.q|urlencode }}&page={{ stock.previous_page_number }}">Anterior</a>{% endif %} {% if stock.has_next %}<a href="?q={{ request.GET.q|urlencode }}&page={{ stock.next_page_number }}">Siguiente</a>{% endif %}</p>
+<h5>Últimos traslados</h5><ul>{% for traslado in traslados %}<li>#{{ traslado.pk }} · {{ traslado.fecha|date:'d/m/Y H:i' }} · {{ traslado.producto.nombre }} × {{ traslado.cantidad }} · {{ traslado.origen }} → {{ traslado.destino }} · {{ traslado.usuario }} · {{ traslado.motivo }}</li>{% empty %}<li>Sin traslados.</li>{% endfor %}</ul>
+{% endblock %}

@@ -7,8 +7,9 @@
 <small class="text-muted">Total pagado (mes)</small>
 <strong class="d-block fs-5">Q{{ total_mes|floatformat:2 }}</strong>
 </div>
-{% if perms.ventas.add_venta %}<a href="{% url 'ventas:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Venta</a>{% endif %}
+{% if perms.ventas.add_venta %}<a href="{% url 'ventas:crear' %}?mayorista={% if request.GET.canal == 'mayorista' %}1{% else %}0{% endif %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nueva Venta</a>{% endif %}
 </div>
+<p><a class="btn btn-outline-primary" href="?canal=mayorista">Ventas de distribución / mayoristas</a></p>
 <div class="d-flex gap-2 mb-3" aria-label="Filtrar ventas">
 <a href="{% url 'ventas:lista' %}" class="btn btn-outline-secondary">Todas</a>
 <a href="?estado=pendiente" class="btn {% if estado == 'pendiente' %}btn-primary{% else %}btn-outline-primary{% endif %}">Pendientes de cobro</a>

@@ -39,7 +39,8 @@ def editar(request, pk):
 def detalle(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     mascotas = cliente.mascotas.all() if request.user.has_perm('pacientes.view_paciente') else []
-    ventas = cliente.ventas.all()[:10] if request.user.has_perm('ventas.view_venta') else []
+    from inventario.operaciones import ubicaciones_usuario
+    ventas = cliente.ventas.filter(punto_venta__in=ubicaciones_usuario(request.user))[:10] if request.user.has_perm('ventas.view_venta') else []
     return render(request, 'clientes/detalle.html', {'cliente': cliente, 'mascotas': mascotas, 'ventas': ventas})
 
 @login_required

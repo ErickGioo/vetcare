@@ -214,6 +214,8 @@
             <i class="fas fa-user-md"></i> Empleados / Vets
         </a>{% endif %}
         <div class="nav-section">Inventario</div>
+        {% if perms.inventario.view_existencia %}<a href="{% url 'inventario:panel' %}"><i class="fas fa-warehouse"></i> Inventario general</a>{% endif %}
+        {% if perms.inventario.view_ubicacion %}<a href="{% url 'inventario:puntos' %}"><i class="fas fa-store"></i> Puntos de venta</a>{% endif %}
         {% if perms.productos.view_producto %}<a href="/productos/" {% if '/productos/' in request.path %}class="active"{% endif %}>
             <i class="fas fa-pills"></i> Productos
         </a>{% endif %}
@@ -221,6 +223,8 @@
             <i class="fas fa-truck"></i> Proveedores
         </a>{% endif %}
         <div class="nav-section">Facturación</div>
+{% if perms.ventas.view_venta %}<a href="/ventas/?canal=mayorista"><i class="fas fa-truck-loading"></i> Distribución mayorista</a>{% endif %}
+{% if perms.ventas.view_solicituddescuento and user.is_staff %}<a href="{% url 'ventas:descuentos' %}">Autorizar descuentos</a>{% endif %}
         {% if perms.ventas.view_venta %}<a href="/ventas/" {% if request.path == '/ventas/' %}class="active"{% endif %}>
             <i class="fas fa-receipt"></i> Ventas
         </a>{% endif %}

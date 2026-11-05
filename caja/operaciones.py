@@ -19,7 +19,7 @@ def registrar_cobro(venta):
     bloquear()
     if CobroCaja.objects.filter(venta=venta).exists():
         return
-    caja = CajaDiaria.objects.filter(fecha=timezone.localdate(), cerrada_en__isnull=True).first()
+    caja = CajaDiaria.objects.filter(fecha=timezone.localdate(), punto_venta_id=venta.punto_venta_id, cerrada_en__isnull=True).first()
     # Un callback tardío se conserva fuera del cierre, sin alterar su cuadre.
     CobroCaja.objects.create(venta=venta, caja=caja, metodo=venta.tipo_pago, monto=venta.total)
 
@@ -32,15 +32,17 @@ def totales(caja):
 
 
 @transaction.atomic
-def abrir(usuario, inicial):
+def abrir(usuario, inicial, punto_id=1):
+    from inventario.operaciones import validar_punto
+    validar_punto(usuario,punto_id)
     bloquear()
     today = timezone.localdate()
-    if CajaDiaria.objects.filter(fecha=today).exists():
+    if CajaDiaria.objects.filter(fecha=today,punto_venta_id=punto_id).exists():
         raise ValidationError('Ya existe una apertura para hoy. No se puede duplicar ni reabrir un cierre.')
-    if CajaDiaria.objects.filter(cerrada_en__isnull=True).exists():
+    if CajaDiaria.objects.filter(cerrada_en__isnull=True,punto_venta_id=punto_id).exists():
         raise ValidationError('Cierra la caja anterior antes de abrir una nueva.')
-    caja = CajaDiaria.objects.create(fecha=today, inicial=inicial, abierta_por=usuario)
-    CobroCaja.objects.filter(caja__isnull=True, fecha__date=today).update(caja=caja)
+    caja = CajaDiaria.objects.create(punto_venta_id=punto_id,fecha=today, inicial=inicial, abierta_por=usuario)
+    CobroCaja.objects.filter(caja__isnull=True, fecha__date=today,venta__punto_venta_id=punto_id).update(caja=caja)
     return caja
 
 
@@ -50,7 +52,7 @@ def cerrar(pk, usuario, contado, observaciones):
     caja = CajaDiaria.objects.select_for_update().get(pk=pk)
     if caja.cerrada_en:
         raise ValidationError('Esta caja ya está cerrada. El cierre se conserva sin cambios.')
-    if PagoNeonet.objects.filter(estado='pendiente').exists():
+    if PagoNeonet.objects.filter(estado='pendiente',venta__punto_venta_id=caja.punto_venta_id).exists():
         raise ValidationError('Hay pagos NeoNet pendientes. Verifica su resultado antes de cerrar caja.')
     amounts = totales(caja)
     if any(key not in METODOS and value for key, value in amounts.items()):
@@ -97,7 +99,7 @@ def resolver_reapertura(pk, usuario, aprobar):
     if aprobar:
         if caja.cerrada_en != solicitud.cierre_referencia:
             raise ValidationError('El cierre cambió; realiza una nueva solicitud.')
-        if CajaDiaria.objects.filter(cerrada_en__isnull=True).exists():
+        if CajaDiaria.objects.filter(cerrada_en__isnull=True,punto_venta_id=caja.punto_venta_id).exists():
             raise ValidationError('Cierra la caja abierta antes de autorizar esta reapertura.')
         solicitud.cierre_anterior = {'cerrada_en':caja.cerrada_en.isoformat(), 'cerrada_por':caja.cerrada_por_id,
             'esperado':caja.esperado, 'contado':caja.contado, 'observaciones':caja.observaciones,
@@ -108,7 +110,7 @@ def resolver_reapertura(pk, usuario, aprobar):
         caja.contado = {}
         caja.observaciones = ''
         caja.save(update_fields=['cerrada_en','cerrada_por','esperado','contado','observaciones'])
-        CobroCaja.objects.filter(caja__isnull=True, fecha__date=caja.fecha).update(caja=caja)
+        CobroCaja.objects.filter(caja__isnull=True, fecha__date=caja.fecha,venta__punto_venta_id=caja.punto_venta_id).update(caja=caja)
     solicitud.estado = 'aprobada' if aprobar else 'rechazada'
     solicitud.resuelta_por = usuario
     solicitud.resuelta_en = timezone.now()

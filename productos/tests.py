@@ -65,3 +65,22 @@ class CatalogoPermisosTests(TestCase):
         self.assertEqual(self.client.get('/citas/').status_code,200)
         self.assertEqual(self.client.get('/citas/nueva/').status_code,403)
         self.assertEqual(self.client.get('/citas/1/estado/completada/').status_code,403)
+
+    def test_brand_multiple_suppliers_and_barcode_uniqueness(self):
+        from proveedores.models import Marca, Proveedor
+        brand=Marca.objects.create(nombre='Marca única')
+        a=Proveedor.objects.create(nombre='Proveedor A')
+        b=Proveedor.objects.create(nombre='Proveedor B')
+        a.marcas.add(brand);b.marcas.add(brand)
+        data=self.data(marca=brand.pk,proveedor=a.pk,proveedores=[a.pk,b.pk],codigo_barras='7501234567890')
+        form=ProductoForm(data)
+        self.assertTrue(form.is_valid(),form.errors)
+        product=form.save()
+        self.assertEqual(product.marca,brand)
+        self.assertEqual(product.proveedores.count(),2)
+        duplicate=ProductoForm(self.data(codigo_barras='7501234567890'))
+        self.assertFalse(duplicate.is_valid())
+        self.assertIn('codigo_barras',duplicate.errors)
+        empty=ProductoForm(self.data(codigo_barras=''))
+        self.assertTrue(empty.is_valid(),empty.errors)
+        self.assertIsNone(empty.save().codigo_barras)

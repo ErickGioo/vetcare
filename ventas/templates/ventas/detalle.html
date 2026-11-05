@@ -2,6 +2,9 @@
 {% block title %}Venta #{{ venta.numero }}{% endblock %}
 {% block page_title %}Venta #{{ venta.numero }}{% endblock %}
 {% block content %}
+<p><strong>Punto de venta:</strong> {{ venta.punto_venta }} · {% if venta.mayorista %}Distribución / precio mayorista{% else %}Precio público{% endif %}</p>
+{% if venta.estado == 'pendiente' and perms.ventas.change_venta %}<details class="card card-body mb-3"><summary>Aplicar descuento / pedir autorización</summary><p>Desde el 5 % inclusive se requiere autorización del administrador antes de cobrar. Se aplica a todos los artículos.</p><form method="post">{% csrf_token %}<label for="porcentaje">Descuento (%)</label><input id="porcentaje" name="porcentaje" type="number" min="0" max="100" step="0.01" class="form-control" required><label for="motivo-descuento">Motivo para el administrador</label><input id="motivo-descuento" name="motivo_descuento" maxlength="500" class="form-control"><button class="btn btn-outline-primary mt-2" name="aplicar_descuento" value="1">Aplicar / solicitar descuento</button></form></details>{% endif %}
+{% for aprobacion in aprobaciones %}<div class="alert {% if aprobacion.estado == 'aprobada' and aprobacion.vigente %}alert-success{% else %}alert-warning{% endif %}">Descuento #{{ aprobacion.pk }} · {{ aprobacion.porcentaje }} % · {{ aprobacion.get_estado_display }} · {{ aprobacion.solicitada_en|date:'d/m/Y H:i' }}{% if not aprobacion.vigente %} · La venta cambió; esta solicitud ya no autoriza el cobro.{% endif %}{% if aprobacion.resuelta_por %} · {{ aprobacion.resuelta_por }} · {{ aprobacion.resuelta_en|date:'d/m/Y H:i' }}{% endif %}{% if aprobacion.estado == 'pendiente' and aprobacion.vigente %}<p class="mb-0 mt-2"><a class="btn btn-outline-success" href="{{ aprobacion.whatsapp }}" target="_blank" rel="noopener noreferrer">Compartir solicitud por WhatsApp</a> <small>Envío manual; todavía no hay proveedor para envío automático.</small></p>{% endif %}</div>{% endfor %}
 <p><a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{% url 'ventas:comprobante' venta.pk %}">Ver / imprimir comprobante</a></p><div class="row g-3">
 <div class="col-md-4">
 <div class="card mb-3"><div class="card-body">
@@ -36,6 +39,7 @@
 </div>
 <div class="col-md-8">
 {% if venta.estado == 'pendiente' %}
+<div class="card mb-3"><div class="card-body"><h6>Agregar con lector de código de barras</h6><form method="post" class="d-flex gap-2">{% csrf_token %}<input type="hidden" name="agregar_item" value="1"><input class="form-control" name="codigo_barras" aria-label="Código escaneado" placeholder="Escanea el empaque y presiona Enter" autocomplete="off" required maxlength="100"><input type="number" class="form-control" style="max-width:100px" name="cantidad" aria-label="Cantidad escaneada" value="1" min="1" required><button class="btn btn-primary">Agregar</button></form></div></div>
 <div class="card mb-3"><div class="card-header">Agregar Producto</div>
 <div class="card-body">
 <form method="post">{% csrf_token %}
@@ -43,7 +47,7 @@
 <div class="row g-2">
 <div class="col-md-7">
 <select name="producto" class="form-select"><option value="">-- Seleccionar producto --</option>
-{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} ({% if p.tipo == 'servicio' %}Servicio{% else %}Stock: {{ p.stock }}{% endif %}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
+{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} ({% if p.tipo == 'servicio' %}Servicio{% else %}Disponible aquí: {{ p.stock_local }}{% endif %}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
 </select>
 </div>
 <div class="col-md-3"><input type="number" name="cantidad" value="1" min="1" class="form-control" placeholder="Cant."></div>

@@ -21,7 +21,11 @@ def facturar_consulta(history_id, service_id, user):
     if not service.activo or service.tipo != 'servicio' or service.precio_final <= 0:
         raise ValidationError('Selecciona un servicio activo con tarifa mayor que cero.')
     employee = Empleado.objects.filter(usuario_id=history.veterinario_id, activo=True).first()
-    sale = Venta.objects.create(numero=f'C{history.pk}-{uuid4().hex[:10]}', cliente_id=history.paciente.propietario_id,
+    from inventario.operaciones import ubicaciones_usuario
+    location=ubicaciones_usuario(user).first()
+    if location is None:
+        raise ValidationError('No tienes un punto de venta activo.')
+    sale = Venta.objects.create(punto_venta=location, numero=f'C{history.pk}-{uuid4().hex[:10]}', cliente_id=history.paciente.propietario_id,
         paciente=history.paciente, empleado=employee, estado='pendiente',
         notas=f'Atención veterinaria #{history.pk}')
     item = DetalleVenta.objects.create(venta=sale, producto=service, cantidad=1,

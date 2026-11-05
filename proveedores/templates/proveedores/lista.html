@@ -2,7 +2,8 @@
 {% block title %}Proveedores{% endblock %}
 {% block page_title %}Proveedores{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-end mb-3">
+<div class="d-flex justify-content-end gap-2 mb-3">
+{% if perms.proveedores.view_marca %}<a href="{% url 'proveedores:marcas' %}" class="btn btn-outline-primary">Marcas</a>{% endif %}
     {% if perms.proveedores.add_proveedor %}<a href="{% url 'proveedores:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Proveedor</a>{% endif %}
 </div>
 <div class="card">

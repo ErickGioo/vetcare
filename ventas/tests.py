@@ -2,7 +2,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.test import TestCase, override_settings
 
 from clientes.models import Cliente
@@ -85,3 +85,58 @@ class SaleCorrectionTests(TestCase):
         response = self.client.get(f'/ventas/{self.sale.pk}/comprobante/')
         self.assertContains(response, 'no acredita un pago')
         self.assertContains(response, 'No sustituye una factura fiscal')
+
+    def test_scan_existing_barcode_adds_sale_line_not_product(self):
+        self.product.codigo_barras='7501234567890'
+        self.product.save()
+        count=Producto.objects.count()
+        response=self.client.post(f'/ventas/{self.sale.pk}/', {'agregar_item':'1','codigo_barras':'7501234567890','cantidad':'2'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(self.sale.items.get().producto_id,self.product.pk)
+        self.assertEqual(self.sale.items.get().cantidad,2)
+        self.assertEqual(Producto.objects.count(),count)
+        self.client.post(f'/ventas/{self.sale.pk}/',{'agregar_item':'1','codigo_barras':'NO_EXISTE','cantidad':'1'})
+        self.assertEqual(self.sale.items.count(),1)
+
+    def test_discount_threshold_and_approval_guard_cash_and_card(self):
+        from .descuentos import aplicar_descuento,resolver_descuento,validar_descuento
+        item=agregar_articulo(self.sale.pk,self.product.pk,2,self.user)
+        # The catalog's 10% discount also requires approval.
+        with self.assertRaises(ValidationError):validar_descuento(self.sale)
+        request=aplicar_descuento(self.sale.pk,Decimal('5'),'Atención especial',self.user)
+        self.client.post(f'/ventas/{self.sale.pk}/pagar/')
+        self.sale.refresh_from_db();self.assertEqual(self.sale.estado,'pendiente')
+        self.client.post(f'/ventas/{self.sale.pk}/pagar/neonet/')
+        self.assertFalse(self.sale.pagos_neonet.exists())
+        with self.assertRaises(PermissionDenied):resolver_descuento(request.pk,self.user,True)
+        admin=User.objects.create_user('owner_discount',is_staff=True,is_superuser=True)
+        resolver_descuento(request.pk,admin,True)
+        self.sale.refresh_from_db();validar_descuento(self.sale)
+        cambiar_cantidad(self.sale.pk,item.pk,1,self.user)
+        self.sale.refresh_from_db()
+        with self.assertRaises(ValidationError):validar_descuento(self.sale)
+        below=aplicar_descuento(self.sale.pk,Decimal('4.99'),' ',self.user)
+        self.assertIsNone(below)
+        self.sale.refresh_from_db();validar_descuento(self.sale)
+        self.client.post(f'/ventas/{self.sale.pk}/pagar/')
+        self.sale.refresh_from_db();self.assertEqual(self.sale.estado,'pagada')
+
+    def test_stale_or_rejected_request_does_not_authorize_and_link_is_share_only(self):
+        from .descuentos import aplicar_descuento,resolver_descuento,validar_descuento
+        from django.core.exceptions import PermissionDenied
+        item=agregar_articulo(self.sale.pk,self.product.pk,2,self.user)
+        request=aplicar_descuento(self.sale.pk,Decimal('8'),'Precio especial',self.user)
+        duplicate=aplicar_descuento(self.sale.pk,Decimal('8'),'Precio especial',self.user)
+        self.assertEqual(request.pk,duplicate.pk)
+        page=self.client.get(f'/ventas/{self.sale.pk}/')
+        self.assertContains(page,'Compartir solicitud por WhatsApp')
+        self.assertContains(page,'https://wa.me/')
+        self.assertEqual(self.client.get('/ventas/descuentos/').status_code,403)
+        admin=User.objects.create_user('owner_reject',is_staff=True,is_superuser=True)
+        resolver_descuento(request.pk,admin,False)
+        self.sale.refresh_from_db()
+        with self.assertRaises(ValidationError):validar_descuento(self.sale)
+        with self.assertRaises(ValidationError):resolver_descuento(request.pk,admin,True)
+        fresh=aplicar_descuento(self.sale.pk,Decimal('8'),'Nueva revisión',self.user)
+        cambiar_cantidad(self.sale.pk,item.pk,1,self.user)
+        with self.assertRaises(ValidationError):resolver_descuento(fresh.pk,admin,True)
