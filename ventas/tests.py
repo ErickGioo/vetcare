@@ -140,3 +140,23 @@ class SaleCorrectionTests(TestCase):
         fresh=aplicar_descuento(self.sale.pk,Decimal('8'),'Nueva revisión',self.user)
         cambiar_cantidad(self.sale.pk,item.pk,1,self.user)
         with self.assertRaises(ValidationError):resolver_descuento(fresh.pk,admin,True)
+
+    def test_new_sale_generates_number_without_invoice_field(self):
+        from .views import VentaForm
+        self.assertNotIn('numero',VentaForm().fields)
+        initial=self.sale.numero
+        from empleados.models import Empleado
+        employee=Empleado.objects.create(nombre='Caja',apellido='Prueba',rol='recepcionista',fecha_ingreso='2026-01-01')
+        generated=[]
+        for _ in range(2):
+            response=self.client.post('/ventas/nueva/',{'cliente':self.owner.pk,'empleado':employee.pk,'punto_venta':1,'tipo_pago':'efectivo','numero':'NUMERO_MANIPULADO'})
+            self.assertEqual(response.status_code,302)
+            sale=Venta.objects.latest('pk')
+            self.assertTrue(sale.numero.startswith('V-'))
+            self.assertLessEqual(len(sale.numero),20)
+            self.assertNotEqual(sale.numero,'NUMERO_MANIPULADO')
+            generated.append(sale.numero)
+        self.assertNotEqual(*generated)
+        self.sale.refresh_from_db()
+        self.assertEqual(self.sale.numero,initial)
+        self.assertContains(self.client.get('/ventas/nueva/'),'se genera automáticamente')

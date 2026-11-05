@@ -22,7 +22,7 @@ from .descuentos import aplicar_descuento, validar_descuento, resolver_descuento
 class VentaForm(forms.ModelForm):
     class Meta:
         model = Venta
-        fields = ['numero', 'punto_venta', 'mayorista', 'cliente', 'paciente', 'empleado', 'tipo_pago', 'notas']
+        fields = ['punto_venta', 'mayorista', 'cliente', 'paciente', 'empleado', 'tipo_pago', 'notas']
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for f in self.fields.values():

@@ -69,7 +69,7 @@ def cierre(request):
                 ['Ganancia bruta Q', totals['ganancia']], ['Margen %', totals['margen']],
                 ['Forma de pago', 'Cantidad', 'Total Q']]
         rows += [[p['nombre'], p['cantidad'], p['total']] for p in payments]
-        rows += [[], ['Factura', 'Fecha de venta', 'Estado', 'Forma de pago', 'Total Q']]
+        rows += [[], ['Número de venta', 'Fecha de venta', 'Estado', 'Forma de pago', 'Total Q']]
         rows += [[v.numero, timezone.localtime(v.fecha).isoformat(), v.get_estado_display(), v.get_tipo_pago_display(), v.total] for v in sales]
         return csv_report(f'cierre-{start}-{end}', rows)
     return render(request, 'informes/cierre.html', dict(

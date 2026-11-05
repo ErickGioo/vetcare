@@ -1,8 +1,13 @@
 from django.db import models, transaction
+from uuid import uuid4
 from clientes.models import Cliente
 from pacientes.models import Paciente
 from productos.models import Producto, MovimientoInventario
 from empleados.models import Empleado
+
+def generar_numero_venta():
+    return 'V-' + uuid4().hex[:18].upper()
+
 
 class Venta(models.Model):
     ESTADO_CHOICES = [
@@ -18,7 +23,7 @@ class Venta(models.Model):
     ]
     punto_venta = models.ForeignKey('inventario.Ubicacion', on_delete=models.PROTECT, default=1)
     mayorista = models.BooleanField(default=False, verbose_name='Venta mayorista')
-    numero = models.CharField(max_length=20, unique=True, verbose_name='No. Factura')
+    numero = models.CharField(max_length=20, unique=True, default=generar_numero_venta, editable=False, verbose_name='Número de venta')
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='ventas')
     paciente = models.ForeignKey(Paciente, on_delete=models.SET_NULL, null=True, blank=True, related_name='ventas')
     empleado = models.ForeignKey(Empleado, on_delete=models.SET_NULL, null=True, related_name='ventas')
