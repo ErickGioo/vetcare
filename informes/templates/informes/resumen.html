@@ -13,7 +13,7 @@
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
     <div><p class="text-muted mb-0">Resumen del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}.</p></div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
 {% if user.is_superuser %}<a class="btn btn-outline-primary" href="{% url 'caja:accesos' %}"><i class="fas fa-clock me-2"></i>Registro de accesos</a>{% endif %}
 <a class="btn btn-outline-primary" href="{% url 'informes:servicios' %}">Servicios realizados</a>
 <a class="btn btn-primary" href="{% url 'informes:cierres' %}">Cierres diarios / mensuales</a>
@@ -26,12 +26,15 @@
 {% include 'informes/_filtro_fechas.html' %}
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Ingresos cobrados</div><div class="metric">Q{{ ingresos|floatformat:2 }}</div><small class="text-muted">{{ ventas_pagadas }} venta{{ ventas_pagadas|pluralize:"s" }} pagada{{ ventas_pagadas|pluralize:"s" }}</small></div></div></div>
+    <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Total vendido y cobrado</div><div class="metric">Q{{ ingresos|floatformat:2 }}</div><small class="text-muted">{{ ventas_pagadas }} venta{{ ventas_pagadas|pluralize:"s" }} pagada{{ ventas_pagadas|pluralize:"s" }}</small></div></div></div>
+    <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Costo de lo vendido</div><div class="metric">Q{{ costo_vendido|floatformat:2 }}</div><small class="text-muted">Costo registrado de los artículos y servicios vendidos</small></div></div></div>
     <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Ganancia bruta</div><div class="metric text-success">Q{{ ganancia|floatformat:2 }}</div><small class="text-muted">Margen: {{ margen|floatformat:1 }}%</small></div></div></div>
+    <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Invertido en inventario disponible</div><div class="metric">Q{{ inversion_inventario|floatformat:2 }}</div><small class="text-muted">Valor actual al costo de compra · {{ inventario_al|date:"d/m/Y H:i" }}</small></div></div></div>
     <div class="col-md-3"><div class="card report-card"><div class="card-body"><div class="metric-label">Visitas atendidas</div><div class="metric">{{ visitas }}</div><small class="text-muted">{{ citas_programadas }} citas vigentes</small></div></div></div>
     <div class="col-md-3"><a class="report-link" href="{% url 'informes:inventario' %}"><div class="card report-card"><div class="card-body"><div class="metric-label">Alertas de inventario</div><div class="metric {% if stock_bajo %}text-danger{% endif %}">{{ stock_bajo }}</div><small class="text-muted">productos en o bajo mínimo</small></div></div></a></div>
 </div>
 
+<p class="text-muted small">Para el período seleccionado: ganancia bruta = total vendido y cobrado − costo de lo vendido. Incluye ventas públicas y mayoristas de tus ubicaciones autorizadas; excluye ventas pendientes y anuladas. No descuenta gastos, impuestos ni nómina. El inventario disponible es una valoración actual, sin mercancía reservada en ventas pendientes; no representa compras acumuladas ni inventario histórico del período.</p>
 <div class="row g-3">
     <div class="col-lg-8"><div class="card h-100"><div class="card-header"><i class="fas fa-chart-column text-success me-2"></i>Ventas y visitas por mes</div><div class="card-body"><canvas id="tendencia" height="120"></canvas></div></div></div>
     <div class="col-lg-4"><div class="card h-100"><div class="card-header"><i class="fas fa-star text-warning me-2"></i>Productos más vendidos</div><div class="card-body p-0">{% if top_products %}<table class="table table-hover mb-0"><thead><tr><th>Producto</th><th class="text-end">Unidades</th></tr></thead><tbody>{% for producto in top_products %}<tr><td><strong>{{ producto.producto__nombre }}</strong><br><small class="text-muted">{{ producto.producto__codigo }}</small></td><td class="text-end">{{ producto.unidades }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="text-center py-5 text-muted">Aún no hay ventas pagadas en el período.</div>{% endif %}</div></div></div>

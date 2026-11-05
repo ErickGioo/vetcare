@@ -112,6 +112,9 @@ def resumen(request):
         .order_by('-unidades')[:5]
     )
     chart_data = _monthly_chart_data(request.user)
+    from inventario.models import Existencia
+    investment = Existencia.objects.filter(ubicacion__in=ubicaciones_usuario(request.user)).exclude(producto__tipo='servicio').aggregate(
+        value=Sum(ExpressionWrapper(F('cantidad') * F('producto__precio_compra'), output_field=MONEY_FIELD)))['value'] or Decimal('0.00')
     return render(request, 'informes/resumen.html', {
         'desde': start,
         'hasta': end,
@@ -119,6 +122,9 @@ def resumen(request):
         'visitas': citas.filter(estado='completada').count(),
         'citas_programadas': citas.exclude(estado__in=['cancelada', 'no_asistio']).count(),
         'ingresos': totals['ingresos'],
+        'costo_vendido': totals['costos'],
+        'inversion_inventario': investment,
+        'inventario_al': timezone.localtime(),
         'ganancia': totals['ganancia'],
         'margen': (totals['ganancia'] / totals['ingresos'] * 100) if totals['ingresos'] else 0,
         'stock_bajo': Producto.objects.filter(activo=True, stock__lte=F('stock_minimo')).exclude(tipo='servicio').count(),

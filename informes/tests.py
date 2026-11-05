@@ -99,3 +99,31 @@ class ReportTests(TestCase):
         self.assertFalse(Venta.objects.exists())
         self.client.force_login(User.objects.create_user('no_staff'))
         self.assertEqual(self.client.get('/informes/servicios/').status_code,403)
+
+    def test_summary_sales_cost_profit_and_current_investment(self):
+        self.sale('PAID')
+        self.sale('PENDING','pendiente')
+        response=self.client.get('/informes/')
+        self.assertEqual(response.context['ingresos'],Decimal('36'))
+        self.assertEqual(response.context['costo_vendido'],Decimal('20'))
+        self.assertEqual(response.context['ganancia'],Decimal('16'))
+        self.assertEqual(response.context['inversion_inventario'],Decimal('960'))
+        self.assertContains(response,'Invertido en inventario disponible')
+        self.product.precio_compra=Decimal('15');self.product.save()
+        response=self.client.get('/informes/')
+        self.assertEqual(response.context['costo_vendido'],Decimal('20'))
+        self.assertEqual(response.context['inversion_inventario'],Decimal('1440'))
+
+    def test_summary_investment_is_scoped_and_not_historical(self):
+        from inventario.models import Ubicacion,Existencia
+        from inventario.operaciones import asegurar_existencias
+        location=Ubicacion.objects.create(nombre='Sucursal')
+        location.usuarios.add(self.staff)
+        asegurar_existencias(self.product)
+        Existencia.objects.create(ubicacion=location,producto=self.product,cantidad=3)
+        service=Producto.objects.create(codigo='SV',nombre='Servicio',tipo='servicio',precio_compra=100,precio_venta=150)
+        Existencia.objects.create(ubicacion=location,producto=service,cantidad=10)
+        response=self.client.get('/informes/',{'desde':'2020-01-01','hasta':'2020-01-02'})
+        self.assertEqual(response.context['inversion_inventario'],Decimal('30'))
+        self.assertEqual(response.context['ingresos'],0)
+        self.assertEqual(response.context['costo_vendido'],0)
