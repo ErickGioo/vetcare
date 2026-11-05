@@ -47,7 +47,7 @@
 <div class="row g-2">
 <div class="col-md-7">
 <select name="producto" class="form-select"><option value="">-- Seleccionar producto --</option>
-{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} ({% if p.tipo == 'servicio' %}Servicio{% else %}Disponible aquí: {{ p.stock_local }}{% endif %}) - Q{{ p.precio_final|floatformat:2 }}</option>{% endfor %}
+{% for p in productos %}<option value="{{ p.pk }}">{{ p.nombre }} ({% if p.tipo == 'servicio' %}Servicio{% else %}Disponible aquí: {{ p.stock_local }}{% endif %}) - Q{{ p.precio_aplicado|floatformat:2 }}</option>{% endfor %}
 </select>
 </div>
 <div class="col-md-3"><input type="number" name="cantidad" value="1" min="1" class="form-control" placeholder="Cant."></div>

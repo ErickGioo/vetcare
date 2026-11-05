@@ -116,9 +116,12 @@ def detalle(request, pk):
     items = venta.items.select_related('producto').all()
     from inventario.models import Existencia
     productos = Producto.objects.filter(activo=True).filter(Q(existencias__ubicacion_id=venta.punto_venta_id,existencias__cantidad__gt=0)|Q(tipo='servicio')).distinct()
+    if venta.mayorista:
+        productos=productos.filter(precio_mayorista__gt=0)
     balances=dict(Existencia.objects.filter(ubicacion_id=venta.punto_venta_id,producto__in=productos).values_list('producto_id','cantidad'))
     for product in productos:
         product.stock_local=balances.get(product.pk,0)
+        product.precio_aplicado=(product.precio_mayorista if venta.mayorista else product.precio_venta)*(1-product.descuento/100)
     from urllib.parse import urlencode
     approvals=list(venta.solicitudes_descuento.select_related('solicitada_por','resuelta_por')[:10])
     approval_url=request.build_absolute_uri('/ventas/descuentos/')
